@@ -1,0 +1,44 @@
+.tags .gantt_task_content{
+    background-color: transparent !important;
+    color: #FFFFFF !important; /* 或者使用較淡的顏色 */
+    border: none !important; /* 如果需要，移除邊框 */
+}
+
+.A-發行 .gantt_task_content{
+    background-color: #91BBF7;
+    color: #FFFFFF;
+}
+
+.B-進行中 .gantt_task_content{
+    background-color: #72d766;
+    color: #FFFFFF;
+}
+
+.C-驗收 .gantt_task_content{
+    background-color: #20C997;
+    color: #FFFFFF;
+}
+
+.F-結案 .gantt_task_content{
+    background-color: #a6adb3;
+    color: #FFFFFF;
+}
+
+.P-暫緩 .gantt_task_content{
+    background-color: #EF6B6B;
+    color: #FFFFFF;
+}
+
+.R-返工 .gantt_task_content{
+    background-color: #FFA500;
+    color: #FFFFFF;
+}
+
+.gantt_tooltip {
+    z-index: 1000;
+    background-color: #fff;
+    color: #333;
+    padding: 10px;
+    border-radius: 4px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
