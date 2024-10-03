@@ -4,6 +4,7 @@ import gantt from 'dhtmlx-gantt';
 import { useSelector } from 'react-redux';
 import { Select, DatePicker, ConfigProvider, Row, Col } from 'antd';
 import { fieldCodes, 本地化 } from '../config/AppConfig';
+import { UserOutlined, TagOutlined, CalendarOutlined } from '@ant-design/icons';
 import "../styles/GanttChart.css"
 
 import dayjs from 'dayjs';
@@ -17,10 +18,29 @@ const GanttChart = () => {
   const ganttContainer = useRef(null);
   const 標籤資料 = useSelector((state) => state.標籤);
   const 行事曆資料 = useSelector((state) => state.行事曆);
+  const 登入帳號 = useSelector((state) => state.登入帳號);
   const [selectedTag, setSelectedTag] = useState('(全部)');
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState('(全部)');
   const [date, setDate] = useState(null);
 
-  // 使用 useMemo 優化資料過濾
+  const uniqueTags = useMemo(() => {
+    const allTags = 標籤資料.map((record) => record[fieldCodes.標籤類別].value);
+    return Array.from(new Set(allTags)); // 去除重複的標籤類別
+  }, [標籤資料]);
+
+  const filteredCategories = useMemo(() => {
+    const filteredData = selectedTag === '(全部)'
+      ? 標籤資料 
+      : 標籤資料.filter(record => record[fieldCodes.標籤類別].value === selectedTag);
+    return filteredData;
+  }, [selectedTag, 標籤資料]);
+
+  useEffect(() => {
+    const 登入 = kintone.getLoginUser();
+    setSelectedUser(登入.code);
+  }, []);
+
   const filterData = useMemo(() => {
     if (!行事曆資料) return [];
     let filteredData = 行事曆資料;
@@ -32,8 +52,14 @@ const GanttChart = () => {
       });
     }
 
+    if (selectedUser && selectedUser!= '所有人員(ALL)') {
+      filteredData = filteredData.filter(record => 
+        record[fieldCodes.處理人員].value.some(user => user.code === selectedUser)
+      );
+    }
+
     return filteredData;
-  }, [行事曆資料, date]);
+  }, [行事曆資料, date, selectedUser]);
 
   // 使用 useMemo 優化任務資料的處理
   const tasks = useMemo(() => {
@@ -45,6 +71,7 @@ const GanttChart = () => {
       const 標籤 = record[fieldCodes.標籤].value;
       const 標籤類別 = record[fieldCodes.標籤類別].value;
       if (selectedTag !== '(全部)' && 標籤類別 !== selectedTag) continue;
+      if (selectedCategory !== '(全部)' && 標籤 !== selectedCategory) continue;
 
       const 最後取用時間 = dayjs(record[fieldCodes.最後取用時間].value).format('YYYY/MM/DD HH:mm');
       if (!標籤ids[標籤]) {
@@ -90,7 +117,7 @@ const GanttChart = () => {
       data: recordData,
       links: recordLinks,
     };
-  }, [標籤資料, filterData, selectedTag]);
+  }, [標籤資料, filterData, selectedTag, selectedCategory, selectedUser]);
 
   // 初始化甘特圖，只在組件掛載時執行一次
   useEffect(() => {
@@ -235,18 +262,70 @@ const GanttChart = () => {
             <label style={{ marginRight: '8px', fontWeight: 'bold' }}>標籤類別：</label>
             <Select
               value={selectedTag}
-              onChange={(value) => setSelectedTag(value || '(全部)')}
+              onChange={(value) => {
+                setSelectedTag(value || '(全部)');
+                setSelectedCategory('(全部)')
+              }}
               style={{ width: '100%' }}
               placeholder="選擇標籤類別"
               allowClear
+              showSearch
+              suffixIcon={<TagOutlined />}
+              filterOption={(input, option) =>
+                option.children.toLowerCase().includes(input.toLowerCase()) // 過濾選項
+              }
             >
               <Option key="(全部)" value="(全部)">(全部)</Option>
-              <Option key="公司名" value="公司名">公司名</Option>
-              <Option key="技術類" value="技術類">技術類</Option>
-              <Option key="業務類" value="業務類">業務類</Option>
-              <Option key="其他" value="其他">其他</Option>
+              {uniqueTags.map((tag) => (
+                <Option key={tag} value={tag}>{tag}</Option>
+              ))}
             </Select>
           </Col>
+  
+          <Col xs={24} sm={12} md={8} lg={6} xl={4}>
+            <label style={{ marginRight: '8px', fontWeight: 'bold' }}>標籤：</label>
+            <Select
+              value={selectedCategory}
+              onChange={(value) => setSelectedCategory(value || '(全部)')}
+              style={{ width: '100%' }}
+              placeholder="選擇標籤"
+              allowClear
+              showSearch
+              suffixIcon={<TagOutlined />}
+              filterOption={(input, option) =>
+                option.children.toLowerCase().includes(input.toLowerCase()) // 過濾選項
+              }
+            >
+              <Option key="(全部)" value="(全部)">(全部)</Option>
+              {filteredCategories.map((tag) => (
+                <Option key={tag[fieldCodes.標籤].value} value={tag[fieldCodes.標籤].value}>
+                  {tag[fieldCodes.標籤].value}
+                </Option>
+              ))}
+            </Select>
+          </Col>
+  
+          <Col xs={24} sm={12} md={8} lg={6} xl={4}>
+            <label style={{ marginRight: '8px', fontWeight: 'bold' }}>人員：</label>
+            <Select
+              value={selectedUser}
+              onChange={(value) => setSelectedUser(value || '所有人員(ALL)')}
+              style={{ width: '100%' }}
+              placeholder="選擇人員"
+              allowClear
+              showSearch
+              suffixIcon={<UserOutlined />}
+              filterOption={(input, option) =>
+                option.children.toLowerCase().includes(input.toLowerCase()) // 過濾選項
+              }
+            >
+              <Option value={null}>所有人員(ALL)</Option>
+              {登入帳號.map(user => (
+                <Option key={user.code} value={user.code}>{user.name}</Option>
+              ))}
+            </Select>
+          </Col>
+  
           <Col xs={24} sm={12} md={8} lg={6} xl={4}>
             <label style={{ marginRight: '8px', fontWeight: 'bold' }}>發行日期：</label>
             <DatePicker
@@ -254,6 +333,7 @@ const GanttChart = () => {
               onChange={(date) => setDate(date)}
               style={{ width: '100%' }}
               placeholder="選擇發行日期"
+              suffixIcon={<CalendarOutlined />}
             />
           </Col>
         </Row>

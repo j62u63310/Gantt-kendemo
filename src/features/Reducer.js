@@ -1,6 +1,7 @@
 const initialState = {
     行事曆: [],
     標籤: [],
+    登入帳號: [],
 };
 
 const Reducer = (state = initialState, action) => {
@@ -9,6 +10,11 @@ const Reducer = (state = initialState, action) => {
       return {
         ...state,
         行事曆: action.payload,
+      };
+    case 'SET_登入帳號_DATA':
+      return {
+        ...state,
+        登入帳號: action.payload,
       };
     case 'SET_標籤_DATA':
       return {

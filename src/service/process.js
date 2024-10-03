@@ -33,3 +33,22 @@ export const fetchAllData = (appID, query = '', type) => async (dispatch) => {
         console.error(`fetchData: ${error}`);
     }
 };
+
+
+export const fetchAllUser = (type) => async (dispatch) =>{
+    try {
+        const resp = await kintone.api(kintone.api.url('/v1/users', true), 'GET', {});
+        const users = resp.users.map(user => ({
+            code: user.code,
+            name: user.name,
+            order: user.sortOrder
+        }));
+        const sortedUsers = users.sort((a, b) => a.order - b.order);
+        dispatch({
+            type: type, 
+            payload: sortedUsers
+        });
+    } catch (error) {
+        console.error('Error fetching users:', error);
+    }
+}
