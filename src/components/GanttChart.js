@@ -4,15 +4,18 @@ import gantt from 'dhtmlx-gantt';
 import { useSelector } from 'react-redux';
 import { Select, DatePicker, ConfigProvider, Row, Col } from 'antd';
 import { fieldCodes, 本地化 } from '../config/AppConfig';
-import { UserOutlined, TagOutlined, CalendarOutlined } from '@ant-design/icons';
+import { UserOutlined, BorderlessTableOutlined, FlagOutlined, CalendarOutlined } from '@ant-design/icons';
 import "../styles/GanttChart.css"
 
 import dayjs from 'dayjs';
 import 'dayjs/locale/zh-tw';
 import zhTW from "antd/lib/locale/zh_TW";
+import { combineSlices } from '@reduxjs/toolkit';
 dayjs.locale('zh-tw');
 
 const { Option } = Select;
+
+const states = ['A-發行', 'B-進行中', 'C-驗收( V&V )', 'F-結案', 'P-暫緩', 'R-返工']
 
 const GanttChart = () => {
   const ganttContainer = useRef(null);
@@ -21,6 +24,7 @@ const GanttChart = () => {
   const 登入帳號 = useSelector((state) => state.登入帳號);
   const [selectedTag, setSelectedTag] = useState('(全部)');
   const [selectedUser, setSelectedUser] = useState(null);
+  const [selectState, setSelectState] = useState(states);
   const [selectedCategory, setSelectedCategory] = useState('(全部)');
   const [date, setDate] = useState(null);
 
@@ -58,8 +62,12 @@ const GanttChart = () => {
       );
     }
 
+    filteredData = filteredData.filter(record => 
+      selectState.some(state => state === record[fieldCodes.作業狀態_完成度].value)
+    );
+
     return filteredData;
-  }, [行事曆資料, date, selectedUser]);
+  }, [行事曆資料, date, selectedUser, selectState]);
 
   // 使用 useMemo 優化任務資料的處理
   const tasks = useMemo(() => {
@@ -258,7 +266,7 @@ const GanttChart = () => {
     <ConfigProvider locale={zhTW}>
       <div className="filters" style={{ marginBottom: '16px' }}>
         <Row gutter={[16, 16]} align="middle">
-          <Col xs={24} sm={12} md={8} lg={6} xl={4}>
+          <Col xs={24} sm={12} md={8} lg={6} xl={3}>
             <label style={{ marginRight: '8px', fontWeight: 'bold' }}>標籤類別：</label>
             <Select
               value={selectedTag}
@@ -266,11 +274,11 @@ const GanttChart = () => {
                 setSelectedTag(value || '(全部)');
                 setSelectedCategory('(全部)')
               }}
-              style={{ width: '100%' }}
+              style={{ width: '200px' }}
               placeholder="選擇標籤類別"
               allowClear
               showSearch
-              suffixIcon={<TagOutlined />}
+              suffixIcon={<BorderlessTableOutlined />}
               filterOption={(input, option) =>
                 option.children.toLowerCase().includes(input.toLowerCase()) // 過濾選項
               }
@@ -282,16 +290,16 @@ const GanttChart = () => {
             </Select>
           </Col>
   
-          <Col xs={24} sm={12} md={8} lg={6} xl={4}>
+          <Col xs={24} sm={12} md={8} lg={6} xl={3}>
             <label style={{ marginRight: '8px', fontWeight: 'bold' }}>標籤：</label>
             <Select
               value={selectedCategory}
-              onChange={(value) => setSelectedCategory(value || '(全部)')}
-              style={{ width: '100%' }}
+              onChange={(value) => setSelectState(value || '(全部)')}
+              style={{ width: '200px' }}
               placeholder="選擇標籤"
               allowClear
               showSearch
-              suffixIcon={<TagOutlined />}
+              suffixIcon={<BorderlessTableOutlined />}
               filterOption={(input, option) =>
                 option.children.toLowerCase().includes(input.toLowerCase()) // 過濾選項
               }
@@ -305,12 +313,12 @@ const GanttChart = () => {
             </Select>
           </Col>
   
-          <Col xs={24} sm={12} md={8} lg={6} xl={4}>
+          <Col xs={24} sm={12} md={8} lg={6} xl={3}>
             <label style={{ marginRight: '8px', fontWeight: 'bold' }}>人員：</label>
             <Select
               value={selectedUser}
               onChange={(value) => setSelectedUser(value || '所有人員(ALL)')}
-              style={{ width: '100%' }}
+              style={{ width: '200px' }}
               placeholder="選擇人員"
               allowClear
               showSearch
@@ -326,15 +334,36 @@ const GanttChart = () => {
             </Select>
           </Col>
   
-          <Col xs={24} sm={12} md={8} lg={6} xl={4}>
+          <Col xs={24} sm={12} md={8} lg={6} xl={3}>
             <label style={{ marginRight: '8px', fontWeight: 'bold' }}>發行日期：</label>
             <DatePicker
               value={date}
               onChange={(date) => setDate(date)}
-              style={{ width: '100%' }}
+              style={{ width: '200px' }}
               placeholder="選擇發行日期"
               suffixIcon={<CalendarOutlined />}
             />
+          </Col>
+
+          <Col xs={24} sm={12} md={8} lg={6} xl={5}>
+            <label style={{ marginRight: '8px', fontWeight: 'bold' }}>狀態：</label>
+            <Select
+              mode="multiple"
+              value={selectState}
+              onChange={(value) => setSelectState(value)}
+              style={{ width: '550px' }}
+              placeholder="選擇狀態"
+              allowClear
+              showSearch
+              suffixIcon={<FlagOutlined />}
+              filterOption={(input, option) =>
+                option.children.toLowerCase().includes(input.toLowerCase())
+              }
+            >
+              {states.map((state) => (
+                <Option key={state} value={state}>{state}</Option>
+              ))}
+            </Select>
           </Col>
         </Row>
       </div>
