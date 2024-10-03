@@ -1,7 +1,25 @@
-.tags .gantt_task_content{
-    background-color: transparent !important;
-    color: #FFFFFF !important; /* 或者使用較淡的顏色 */
-    border: none !important; /* 如果需要，移除邊框 */
+.filters {
+    margin-left: 20px;
+    margin-bottom: 16px;
+}
+  
+.filters .ant-row {
+    align-items: center;
+}
+  
+.filters label {
+    display: inline-block;
+    margin-bottom: 0;
+    font-weight: bold;
+}
+  
+
+.gantt_task_line.hidden-task {
+    display: none;
+}
+  
+.gantt_task_content.hidden-task {
+    display: none;
 }
 
 .A-發行 .gantt_task_content{
@@ -33,6 +51,40 @@
     background-color: #FFA500;
     color: #FFFFFF;
 }
+
+
+.status-color {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin-right: 8px;
+    border-radius: 50%;
+}
+
+.status-A-發行 {
+    background-color: #91BBF7;
+}
+  
+.status-B-進行中 {
+    background-color: #72d766;
+}
+  
+.status-C-驗收 {
+    background-color: #20C997;
+}
+  
+.status-F-結案 {
+    background-color: #a6adb3;
+}
+  
+.status-P-暫緩 {
+    background-color: #EF6B6B;
+}
+  
+.status-R-返工 {
+    background-color: #FFA500;
+}
+  
 
 .gantt_tooltip {
     z-index: 1000;
