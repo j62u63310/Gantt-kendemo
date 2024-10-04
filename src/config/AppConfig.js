@@ -79,3 +79,31 @@ export const fieldCodes = {
 export const appId = {
     標籤AppId: 1094,
 };
+
+export const colors = {
+  'A-發行': '#91BBF7',
+  'B-進行中': '#72d766',
+  'C-驗收( V&V )': '#20C997',
+  'F-結案': '#a6adb3',
+  'P-暫緩': '#EF6B6B',
+  'R-返工': '#FFA500',
+};
+
+export const getStatusColor = (status) => {
+    switch(status){
+        case "A-發行":
+          return '#91BBF7';
+        case "B-進行中":
+          return '#72d766';
+        case "C-驗收( V&V )":
+          return '#20C997';
+        case "F-結案":
+          return '#a6adb3';
+        case "P-暫緩":
+          return '#EF6B6B';
+        case "R-返工":
+          return '#FFA500';
+        default:
+          return '#000000';
+    }
+};

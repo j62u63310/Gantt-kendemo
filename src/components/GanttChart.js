@@ -1,32 +1,38 @@
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import 'dhtmlx-gantt/codebase/dhtmlxgantt.css';
 import gantt from 'dhtmlx-gantt';
 import { useSelector } from 'react-redux';
-import { Select, DatePicker, ConfigProvider, Row, Col } from 'antd';
-import { fieldCodes, 本地化 } from '../config/AppConfig';
+import { Select, DatePicker, Badge, Tooltip, ConfigProvider, Row, Col, Checkbox } from 'antd';
+import { fieldCodes, getStatusColor, 本地化 } from '../config/AppConfig';
 import { UserOutlined, BorderlessTableOutlined, FlagOutlined, CalendarOutlined } from '@ant-design/icons';
+import { getCookie } from '../service/process';
 import "../styles/GanttChart.css"
 
 import dayjs from 'dayjs';
 import 'dayjs/locale/zh-tw';
 import zhTW from "antd/lib/locale/zh_TW";
-import { combineSlices } from '@reduxjs/toolkit';
 dayjs.locale('zh-tw');
 
 const { Option } = Select;
 
-const states = ['A-發行', 'B-進行中', 'C-驗收( V&V )', 'F-結案', 'P-暫緩', 'R-返工']
+const status = [ 'A-發行', 'B-進行中', 'C-驗收( V&V )', 'F-結案', 'P-暫緩', 'R-返工'];
 
 const GanttChart = () => {
+  const cookie = getCookie("ken_showAll") == "true" ? true : false;
+
   const ganttContainer = useRef(null);
   const 標籤資料 = useSelector((state) => state.標籤);
   const 行事曆資料 = useSelector((state) => state.行事曆);
   const 登入帳號 = useSelector((state) => state.登入帳號);
   const [selectedTag, setSelectedTag] = useState('(全部)');
   const [selectedUser, setSelectedUser] = useState(null);
-  const [selectState, setSelectState] = useState(states);
   const [selectedCategory, setSelectedCategory] = useState('(全部)');
-  const [date, setDate] = useState(null);
+
+  const [isOpen, setIsOpen] = useState(cookie);
+
+  const [isState, setIsState] = useState(status.filter(item => item != 'F-結案' && item != 'P-暫緩'));
+  const [state, setState] = useState([]);
+  const [selectDate, setSelectDate] = useState(null);
 
   const uniqueTags = useMemo(() => {
     const allTags = 標籤資料.map((record) => record[fieldCodes.標籤類別].value);
@@ -49,25 +55,39 @@ const GanttChart = () => {
     if (!行事曆資料) return [];
     let filteredData = 行事曆資料;
 
-    if (date) {
+    if (selectDate) {
       filteredData = filteredData.filter(record => {
-        const 發行日 = dayjs(record[fieldCodes.發行日].value);
-        return 發行日.isSame(date, 'day');
+          const 發行日 = dayjs(record[fieldCodes.發行日].value);
+          return 發行日.isSame(selectDate, 'day') || 發行日.isAfter(selectDate, 'day');
       });
     }
 
-    if (selectedUser && selectedUser!= '所有人員(ALL)') {
+    if (selectedUser && selectedUser!= '所有人員(ALL)' ) {
       filteredData = filteredData.filter(record => 
         record[fieldCodes.處理人員].value.some(user => user.code === selectedUser)
       );
     }
 
     filteredData = filteredData.filter(record => 
-      selectState.some(state => state === record[fieldCodes.作業狀態_完成度].value)
+      isState.includes(record[fieldCodes.作業狀態_完成度].value)
     );
 
+    const eventCounts = status.reduce((acc, state) => {
+      acc[state] = 0;
+      return acc;
+    }, {});
+
+    for(const record of filteredData) {
+        const 所有標籤 = record[fieldCodes.標籤].value.split(',');
+        if(selectedCategory == '(全部)' && !filteredCategories.some(tag => 所有標籤.includes(tag[fieldCodes.標籤].value))) continue;
+        else if(selectedCategory != '(全部)' && !所有標籤.includes(selectedCategory)) continue;
+        eventCounts[record[fieldCodes.作業狀態_完成度].value]++;
+    }
+    
+    setState(Object.entries(eventCounts)); 
+
     return filteredData;
-  }, [行事曆資料, date, selectedUser, selectState]);
+  }, [行事曆資料, selectDate, selectedUser, isState, selectedCategory, filteredCategories]);
 
   // 使用 useMemo 優化任務資料的處理
   const tasks = useMemo(() => {
@@ -80,15 +100,19 @@ const GanttChart = () => {
       const 標籤類別 = record[fieldCodes.標籤類別].value;
       if (selectedTag !== '(全部)' && 標籤類別 !== selectedTag) continue;
       if (selectedCategory !== '(全部)' && 標籤 !== selectedCategory) continue;
+      if (!filterData.some(record => {
+          const 所有標籤 = record[fieldCodes.標籤].value.split(',');
+          return 所有標籤.includes(標籤);
+      })) continue;
 
       const 最後取用時間 = dayjs(record[fieldCodes.最後取用時間].value).format('YYYY/MM/DD HH:mm');
       if (!標籤ids[標籤]) {
         標籤ids[標籤] = recordData.length + 1;
         recordData.push({
           id: 標籤ids[標籤],
-          text: `${標籤} ${最後取用時間}`,
+          text: `${標籤}【${最後取用時間}】`,
           order_type: 'tags',
-          open: true, // 確保任務節點是展開的
+          open: isOpen,
           type: gantt.config.types.project,
           duration: 0,
         });
@@ -125,7 +149,17 @@ const GanttChart = () => {
       data: recordData,
       links: recordLinks,
     };
-  }, [標籤資料, filterData, selectedTag, selectedCategory, selectedUser]);
+  }, [標籤資料, filterData, selectedTag, selectedCategory, selectedUser, isOpen]);
+
+  const handleStateFilter = useCallback((status) => {
+    let array = [...isState];
+    if(array.includes(status)){
+        array = array.filter(item => item !== status);
+    }else{
+        array.push(status);
+    }
+    setIsState(array);
+  }, [isState]);
 
   // 初始化甘特圖，只在組件掛載時執行一次
   useEffect(() => {
@@ -159,7 +193,7 @@ const GanttChart = () => {
     gantt.config.readonly = true;
 
     // 展開全部
-    gantt.config.open_tree_initially = true;
+    gantt.config.open_tree_initially = false;
 
     // 設定繁體中文配置
     gantt.locale = 本地化;
@@ -265,8 +299,8 @@ const GanttChart = () => {
   return (
     <ConfigProvider locale={zhTW}>
       <div className="filters" style={{ marginBottom: '16px' }}>
-        <Row gutter={[16, 16]} align="middle">
-          <Col xs={24} sm={12} md={8} lg={6} xl={3}>
+        <Row gutter={[24, 24]} align="middle">
+          <Col xs={24} sm={12} md={8} lg={6} xl={4}>
             <label style={{ marginRight: '8px', fontWeight: 'bold' }}>標籤類別：</label>
             <Select
               value={selectedTag}
@@ -290,11 +324,11 @@ const GanttChart = () => {
             </Select>
           </Col>
   
-          <Col xs={24} sm={12} md={8} lg={6} xl={3}>
+          <Col xs={24} sm={12} md={8} lg={6} xl={4}>
             <label style={{ marginRight: '8px', fontWeight: 'bold' }}>標籤：</label>
             <Select
               value={selectedCategory}
-              onChange={(value) => setSelectState(value || '(全部)')}
+              onChange={(value) => setSelectedCategory(value || '(全部)')}
               style={{ width: '200px' }}
               placeholder="選擇標籤"
               allowClear
@@ -313,7 +347,7 @@ const GanttChart = () => {
             </Select>
           </Col>
   
-          <Col xs={24} sm={12} md={8} lg={6} xl={3}>
+          <Col xs={24} sm={12} md={8} lg={6} xl={4}>
             <label style={{ marginRight: '8px', fontWeight: 'bold' }}>人員：</label>
             <Select
               value={selectedUser}
@@ -334,36 +368,41 @@ const GanttChart = () => {
             </Select>
           </Col>
   
-          <Col xs={24} sm={12} md={8} lg={6} xl={3}>
+          <Col xs={24} sm={12} md={8} lg={6} xl={4}>
             <label style={{ marginRight: '8px', fontWeight: 'bold' }}>發行日期：</label>
             <DatePicker
-              value={date}
-              onChange={(date) => setDate(date)}
+              value={selectDate}
+              onChange={(value) => setSelectDate(value)}
               style={{ width: '200px' }}
               placeholder="選擇發行日期"
               suffixIcon={<CalendarOutlined />}
             />
           </Col>
-
-          <Col xs={24} sm={12} md={8} lg={6} xl={5}>
-            <label style={{ marginRight: '8px', fontWeight: 'bold' }}>狀態：</label>
-            <Select
-              mode="multiple"
-              value={selectState}
-              onChange={(value) => setSelectState(value)}
-              style={{ width: '550px' }}
-              placeholder="選擇狀態"
-              allowClear
-              showSearch
-              suffixIcon={<FlagOutlined />}
-              filterOption={(input, option) =>
-                option.children.toLowerCase().includes(input.toLowerCase())
-              }
-            >
-              {states.map((state) => (
-                <Option key={state} value={state}>{state}</Option>
+          <Col xs={24} sm={12} md={8} lg={6} xl={4}>
+            <label style={{ marginRight: '8px', fontWeight: 'bold', textAlign: 'top' }}>狀態：</label>
+            <div className='gantt-status-badges'>
+              {state.map(([status, count]) => (
+                  <Tooltip title={
+                    <div>{status}</div>
+                  }>
+                  <Badge 
+                    className={`gantt-state-${isState.includes(status) ? true: false}`} 
+                    key={status} 
+                    count={count}  
+                    showZero 
+                    style={{ backgroundColor: getStatusColor(status) }} 
+                    onClick={() => handleStateFilter(status)}
+                  />
+                  </Tooltip>
               ))}
-            </Select>
+            </div>
+          </Col>
+          <Col xs={24} sm={12} md={8} lg={6} xl={4}>
+            <label style={{ marginRight: '8px', fontWeight: 'bold', textAlign: 'top' }}>展開：</label>
+            <Checkbox checked={isOpen} onChange={(e) => {
+              document.cookie = `ken_showAll=${e.target.checked}; path=/k/${kintone.app.getId()}/; expires=Fri, 31 Dec 9999 23:59:59 GMT`;
+              setIsOpen(e.target.checked)
+            }}/>
           </Col>
         </Row>
       </div>

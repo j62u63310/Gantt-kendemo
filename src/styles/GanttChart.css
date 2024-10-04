@@ -1,19 +1,3 @@
-.filters {
-    margin-left: 20px;
-    margin-bottom: 16px;
-}
-  
-.filters .ant-row {
-    align-items: center;
-}
-  
-.filters label {
-    display: inline-block;
-    margin-bottom: 0;
-    font-weight: bold;
-}
-  
-
 .gantt_task_line.hidden-task {
     display: none;
 }
@@ -93,4 +77,37 @@
     padding: 10px;
     border-radius: 4px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+/**/
+.filters{
+    margin-left: 5px;
+}
+
+.filters .ant-col {
+    display: flex;
+    margin-top: 5px;
+    align-items: center;
+}
+
+.gantt-state-true {
+    transform: translateY(-4px) scale(1.1);
+    box-shadow: 0 0 10px rgba(24, 144, 255, 0.6), 0 4px 12px rgba(0, 0, 0, 0.3);  /* 添加光暈效果 */
+    transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+    background-color: #f0f5ff;
+    border-radius: 50%;  /* 圓形設計讓外觀更柔和 */
+}
+
+.gantt-state-false{
+    transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+}
+
+.gantt-status-badges .ant-badge {
+    cursor: pointer !important;
+}
+
+.gantt-status-badges {
+    display: flex;
+    margin-top: 5px;
+    gap: 10px;
 }

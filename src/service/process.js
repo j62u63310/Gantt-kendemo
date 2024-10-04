@@ -52,3 +52,10 @@ export const fetchAllUser = (type) => async (dispatch) =>{
         console.error('Error fetching users:', error);
     }
 }
+
+export function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return null; // 如果沒找到 cookie，返回 null
+}
