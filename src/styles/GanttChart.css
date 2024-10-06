@@ -79,15 +79,20 @@
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
-/**/
-.filters{
-    margin-left: 5px;
+.child-task .gantt_tree_icon {
+    display: none; /* 隱藏子文件的圖標 */
 }
 
+/**/
+.filters {
+    margin-left: 5px;
+}
+  
 .filters .ant-col {
     display: flex;
+    flex-direction: column;
+    align-items: flex-start;
     margin-top: 5px;
-    align-items: center;
 }
 
 .gantt-state-true {
