@@ -1,0 +1,278 @@
+@keyframes popupAnimation {
+    0% { opacity: 0; transform: scale(0.8) translateY(20px); }
+    70% { opacity: 1; transform: scale(1.05) translateY(-5px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.timeline-tag-modal::-webkit-scrollbar {
+    width: 6px; /* 縮小滾動條寬度使其更貼合 */
+}
+
+.timeline-tag-modal::-webkit-scrollbar-thumb {
+    background: #888; /* 滾動條的顏色 */
+    border-radius: 4px; /* 圓角，使其更美觀 */
+}
+
+.timeline-tag-modal::-webkit-scrollbar-thumb:hover {
+    background: #555; /* 滾動條滑塊在懸停時的顏色 */
+}
+
+.timeline-tag-modal::-webkit-scrollbar-track {
+    margin: 4px 0; /* 增加上下邊距，使滾輪不會直接觸碰到容器邊緣 */
+    background: transparent; /* 調整背景色以避免滾動條干擾 */
+}
+
+/* 添加滾動條平滑滾動效果 */
+.timeline-tag-modal {
+    scroll-behavior: smooth; /* 增加平滑滾動效果 */
+}
+
+.timeline-container {
+    background-color: #f0f2f5;
+    border: 1px solid #d9d9d9;
+    height: 745px;
+    overflow: auto;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    scrollbar-width: thin;
+    scrollbar-color: #888 #f1f1f1;
+}
+
+.timeline-tag-modal {
+    width: 80% !important;;
+    max-width: 1000px !important;;
+    min-width: 300px !important;;
+    height: 745px;
+    padding: 0;
+    overflow: auto;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.modal-fixed-footer,
+.timeline-tag-modal .modal-fixed-header {
+    position: sticky;
+    z-index: 1;
+    background-color: #fff;
+    padding: 16px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.modal-fixed-footer {
+    bottom: 0;
+    text-align: right;
+    border-top: 1px solid #f0f0f0;
+    border-bottom: none;
+}
+
+.timeline-tag-modal .modal-fixed-header {
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.timeline-tag-modal .modal-title {
+    font-size: 25px;
+    font-weight: bold;
+}
+
+.timeline-tag-modal .close-icon {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    cursor: pointer;
+}
+
+.timeline-item {
+    display: flex;
+    background: linear-gradient(135deg, 
+        var(--status-color) 0%, 
+        color-mix(in srgb, var(--status-color) 70%, white) 40%, 
+        rgba(255, 255, 255, 0.9) 100%);
+    animation: popupAnimation 0.5s ease-out forwards;    
+    border-radius: 10px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.timeline-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.timeline-content {
+    flex: 1;
+    padding: 10px;
+    background-color: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(5px);
+    display: flex;
+    flex-direction: column;
+}
+
+.timeline-status-bar {
+    width: 8px;
+    background-color: var(--status-color);
+    flex-shrink: 0;
+}
+
+.timeline-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+}
+
+.timeline-title-section {
+    flex: 1;
+    min-width: 0;
+}
+
+.timeline-status {
+    font-size: 14px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    background-color: var(--status-color);
+    color: #ffffff;
+    font-weight: 500;
+    display: inline-block;
+    margin-bottom: 5px;
+}
+
+.timeline-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.timeline-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.timeline-tag {
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.9);
+    color: #333;
+    white-space: nowrap;
+}
+
+.timeline-tag .anticon {
+    margin-right: 4px;
+}
+
+@keyframes flash {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+@keyframes ripple {
+    0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.3); }
+    100% { box-shadow: 0 0 0 20px rgba(255, 255, 255, 0); }
+}
+
+.timeline-priority.高 {
+    position: relative;
+    background-color: #ff7875;
+    color: #fff;
+    animation: flash 2s infinite;
+    overflow: visible;
+}
+
+.timeline-priority.高::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    transform: translate(-50%, -50%);
+    border-radius: inherit;
+    animation: ripple 2s infinite;
+}
+
+.timeline-priority.中 { background-color: #ffc069; color: #fff; }
+.timeline-priority.低 { background-color: #95de64; color: #fff; }
+
+.timeline-detail{
+    margin-top: 5px;
+    margin-bottom: 5px;
+    display: flex;
+    flex-direction: column;
+}
+
+.timeline-state{
+    margin-left: 5px;
+    display: flex;
+    align-items: center;
+    gap: 8px; 
+}
+
+.timeline-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.timeline-actions-state {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-right: auto; 
+}
+
+.center-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.timeline-actions button {
+    padding: 4px 12px;
+    font-size: 14px;
+    border: none;
+    border-radius: 4px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+.now-start-button.ant-btn-primary:hover,
+.now-start-button.ant-btn-primary:focus,
+.now-start-button.ant-btn-primary:active,
+.edit-button.ant-btn-primary:hover,
+.edit-button.ant-btn-primary:focus,
+.edit-button.ant-btn-primary:active,
+.view-button.ant-btn-primary:hover,
+.view-button.ant-btn-primary:focus,
+.view-button.ant-btn-primary:active,
+.start-button.ant-btn-primary:hover,
+.start-button.ant-btn-primary:focus,
+.start-button.ant-btn-primary:active,
+.state-button.ant-btn-primary:hover,
+.state-button.ant-btn-primary:focus,
+.state-button.ant-btn-primary:active 
+{
+    filter: brightness(1.1) !important;
+    color: white !important;
+}
+
+.timeline-allDate{
+    margin-top: 5px;
+}

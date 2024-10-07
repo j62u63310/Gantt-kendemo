@@ -11,6 +11,15 @@ const Reducer = (state = initialState, action) => {
         ...state,
         行事曆: action.payload,
       };
+    case 'UPDATE_行事曆_ITEM':
+      return {
+        ...state,
+        行事曆: state.行事曆.map(item => 
+          item.$id.value === action.payload.id 
+            ? { ...item, ...action.payload.data }
+            : item
+        ),
+      };
     case 'SET_登入帳號_DATA':
       return {
         ...state,

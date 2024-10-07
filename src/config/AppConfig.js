@@ -61,12 +61,15 @@ export const 本地化 = {
 }
 
 export const fieldCodes = {
+    問題編號: '問題編號',
     問題標題: '問題標題',
+    更新時間: "更新時間",
     開始時間: '開始時間',
     提醒時間: '提醒時間',
     發行日: '發行日',
     到期日: '到期日',
     說明: '說明',
+    優先度: "優先度",
     處理人員: '處理人員',
     驗證說明: '驗證說明',
     作業狀態_完成度: '作業狀態_完成度',
@@ -75,6 +78,14 @@ export const fieldCodes = {
     標籤類別: '標籤類別',
     最後取用時間: '最後取用時間',
 }
+
+export const dateOrder = [
+  fieldCodes.發行日,
+  fieldCodes.開始時間,
+  fieldCodes.更新時間,
+  fieldCodes.提醒時間,
+  fieldCodes.到期日,
+];
 
 export const appId = {
     標籤AppId: 1094,
