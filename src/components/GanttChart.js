@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import 'dhtmlx-gantt/codebase/dhtmlxgantt.css';
-import gantt from 'dhtmlx-gantt';
+import { gantt } from 'dhtmlx-gantt';
 import { useSelector } from 'react-redux';
-import { Select, DatePicker, Badge, Tooltip, ConfigProvider, Modal, Row, Col, Checkbox, Radio } from 'antd';
+import { Button, Select, DatePicker, Badge, Tooltip, ConfigProvider, Modal, Row, Col, Checkbox, Radio } from 'antd';
 import { fieldCodes, getStatusColor, 本地化 } from '../config/AppConfig';
 import { UserOutlined, BorderlessTableOutlined, CalendarOutlined, CloseOutlined  } from '@ant-design/icons';
 import { getCookie } from '../service/process';
@@ -19,27 +19,36 @@ const { Option } = Select;
 const status = ['A-發行', 'B-進行中', 'C-驗收( V&V )', 'F-結案', 'P-暫緩', 'R-返工'];
 
 const GanttChart = () => {
-  const showAll = getCookie("ken_showAll") === "true" ? true : false;
-  const showView = getCookie("ken_view") || 'month';
-
+  const showSetting = JSON.parse(getCookie("ken_Setting")) || {
+      selectedCategory: '(全部)',
+      selectedTag: '(全部)',
+      selectedUser: '所有人員(ALL)',
+      selectedDate: null,
+      selectedView: 'month',
+      selectedOpen: false,
+      selectedToday: false,
+  };
+  
   const ganttContainer = useRef(null);
   const 標籤資料 = useSelector((state) => state.標籤);
   const 行事曆資料 = useSelector((state) => state.行事曆);
   const 登入帳號 = useSelector((state) => state.登入帳號);
-  const [selectedTag, setSelectedTag] = useState('(全部)');
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [selectedCategory, setSelectedCategory] = useState('(全部)');
 
-  const [isOpen, setIsOpen] = useState(showAll);
+  const [selectedSetting, setSelectedSetting] = useState(showSetting);
 
-  const [isState, setIsState] = useState(status.filter(item => item !== 'F-結案' && item !== 'P-暫緩'));
   const [state, setState] = useState([]);
-  const [selectDate, setSelectDate] = useState(null);
-
-  const [currentView, setCurrentView] = useState(showView);
-
+  const [isState, setIsState] = useState(status.filter(item => item !== 'F-結案' && item !== 'P-暫緩'));
   const [isModalShow, setIsModalShow] = useState(false);
   const [currentTask, setCurrentTask] = useState(null);
+
+  useEffect(() => {
+    const 登入 = kintone.getLoginUser();
+    setSelectedSetting((prev) => ({ ...prev, selectedUser: 登入.code }));
+  }, []);
+
+  useEffect(() => {
+    document.cookie = `ken_Setting=${JSON.stringify(selectedSetting)}; path=/k/${kintone.app.getId()}/; expires=Fri, 31 Dec 9999 23:59:59 GMT`;
+  }, [selectedSetting])
 
   const scales = {
     year: [
@@ -66,31 +75,33 @@ const GanttChart = () => {
   }, [標籤資料]);
 
   const filteredCategories = useMemo(() => {
-    const filteredData = selectedTag === '(全部)'
+    const filteredData = selectedSetting.selectedCategory === '(全部)'
       ? 標籤資料
-      : 標籤資料.filter(record => record[fieldCodes.標籤類別].value === selectedTag);
+      : 標籤資料.filter(record => record[fieldCodes.標籤類別].value === selectedSetting.selectedCategory);
     return filteredData;
-  }, [selectedTag, 標籤資料]);
-
-  useEffect(() => {
-    const 登入 = kintone.getLoginUser();
-    setSelectedUser(登入.code);
-  }, []);
+  }, [selectedSetting, 標籤資料]);
 
   const filterData = useMemo(() => {
     if (!行事曆資料) return [];
     let filteredData = 行事曆資料;
 
-    if (selectDate) {
+    if (selectedSetting.selectedDate) {
       filteredData = filteredData.filter(record => {
         const 發行日 = dayjs(record[fieldCodes.發行日].value);
-        return 發行日.isSame(selectDate, 'day') || 發行日.isAfter(selectDate, 'day');
+        return 發行日.isSame(selectedSetting.selectedDate, 'day') || 發行日.isAfter(selectedSetting.selectedDate, 'day');
       });
     }
 
-    if (selectedUser && selectedUser !== '所有人員(ALL)') {
+    if(selectedSetting.selectedToday){
+      filteredData = filteredData.filter(record => {
+        const 開始時間 = dayjs(record[fieldCodes.開始時間].value);
+        return 開始時間.isSame(dayjs(new Date()), 'day') || 開始時間.isAfter(dayjs(new Date()), 'day');
+      });
+    }
+
+    if (selectedSetting.selectedUser && selectedSetting.selectedUser !== '所有人員(ALL)') {
       filteredData = filteredData.filter(record =>
-        record[fieldCodes.處理人員].value.some(user => user.code === selectedUser)
+        record[fieldCodes.處理人員].value.some(user => user.code === selectedSetting.selectedUser)
       );
     }
 
@@ -105,15 +116,15 @@ const GanttChart = () => {
 
     for (const record of filteredData) {
       const 所有標籤 = record[fieldCodes.標籤].value.split(',');
-      if (selectedCategory === '(全部)' && !filteredCategories.some(tag => 所有標籤.includes(tag[fieldCodes.標籤].value))) continue;
-      else if (selectedCategory !== '(全部)' && !所有標籤.includes(selectedCategory)) continue;
+      if (selectedSetting.selectedTag === '(全部)' && !filteredCategories.some(tag => 所有標籤.includes(tag[fieldCodes.標籤].value))) continue;
+      else if (selectedSetting.selectedTag !== '(全部)' && !所有標籤.includes(selectedSetting.selectedTag)) continue;
       eventCounts[record[fieldCodes.作業狀態_完成度].value]++;
     }
 
     setState(Object.entries(eventCounts));
 
     return filteredData;
-  }, [行事曆資料, selectDate, selectedUser, isState, selectedCategory, filteredCategories]);
+  }, [行事曆資料, selectedSetting, isState, filteredCategories]);
 
   const tasks = useMemo(() => {
     const recordData = [];
@@ -123,8 +134,8 @@ const GanttChart = () => {
     for (const record of 標籤資料) {
       const 標籤 = record[fieldCodes.標籤].value;
       const 標籤類別 = record[fieldCodes.標籤類別].value;
-      if (selectedTag !== '(全部)' && 標籤類別 !== selectedTag) continue;
-      if (selectedCategory !== '(全部)' && 標籤 !== selectedCategory) continue;
+      if (selectedSetting.selectedCategory !== '(全部)' && 標籤類別 !== selectedSetting.selectedCategory) continue;
+      if (selectedSetting.selectedTag !== '(全部)' && 標籤 !== selectedSetting.selectedTag) continue;
       if (!filterData.some(record => {
         const 所有標籤 = record[fieldCodes.標籤].value.split(',');
         return 所有標籤.includes(標籤);
@@ -137,7 +148,7 @@ const GanttChart = () => {
           id: 標籤ids[標籤],
           [fieldCodes.問題標題]: `${標籤}【${最後取用時間}】`,
           [fieldCodes.作業狀態_完成度]: 'tags',
-          open: isOpen,
+          open: selectedSetting.selectedOpen,
           type: gantt.config.types.project,
           duration: 0,
         });
@@ -184,7 +195,7 @@ const GanttChart = () => {
       data: recordData,
       links: recordLinks,
     };
-  }, [標籤資料, filterData, selectedTag, selectedCategory, selectedUser, isOpen]);
+  }, [標籤資料, filterData, selectedSetting]);
 
   const handleStateFilter = useCallback((status) => {
     let array = [...isState];
@@ -197,7 +208,7 @@ const GanttChart = () => {
   }, [isState]);
 
   const handleViewChange = useCallback((view) => {
-    setCurrentView(view);
+    setSelectedSetting((prev) => ({ ...prev, selectedView: view }));
 
     // 更新甘特圖配置
     gantt.config.scale_unit = scales[view][0].unit;
@@ -214,25 +225,53 @@ const GanttChart = () => {
   }, [tasks]);
 
   useEffect(() => {
+
+    tasks.data.forEach(task => {
+      if (task[fieldCodes.開始時間]) {
+        const taskStartDate = new Date(task.start_date);
+        const taskEndDate = new Date(task.end_date);
+        const startTime = new Date(task[fieldCodes.開始時間]);
+    
+        if (startTime >= taskStartDate && startTime <= taskEndDate) {
+          const totalDuration = taskEndDate - taskStartDate;
+    
+          const durationUntilStartTime = startTime - taskStartDate;
+    
+          let progress = durationUntilStartTime / totalDuration;
+    
+          if (progress < 0) progress = 0;
+          if (progress > 1) progress = 1;
+    
+          task.progress = progress;
+        } else if (startTime > taskEndDate) {
+          task.progress = 1;
+        } else {
+          task.progress = 0;
+        }
+      } else {
+        task.progress = 0;
+      }
+    });
+
     gantt.config.xml_date = '%Y-%m-%d %H:%i';
     gantt.config.date_format = '%Y-%m-%d %H:%i';
     gantt.config.date_grid = '%Y年%m月%d日 %H:%i';
 
     // 設定時間軸單位和格式
-    gantt.config.scale_unit = scales[currentView][0].unit;
-    gantt.config.date_scale = scales[currentView][0].format;
-    gantt.config.subscales = scales[currentView].slice(1).map((scale) => ({
+    gantt.config.scale_unit = scales[selectedSetting.selectedView][0].unit;
+    gantt.config.date_scale = scales[selectedSetting.selectedView][0].format;
+    gantt.config.subscales = scales[selectedSetting.selectedView].slice(1).map((scale) => ({
       unit: scale.unit,
       step: scale.step,
       date: scale.format,
     }));
 
     // 調整時間刻度的步長和格式
-    if (currentView === 'week') {
+    if (selectedSetting.selectedView === 'week') {
       gantt.config.subscales[0].step = 1;
-    } else if (currentView === 'month') {
+    } else if (selectedSetting.selectedView === 'month') {
       gantt.config.subscales[0].step = 1;
-    } else if (currentView === 'year') {
+    } else if (selectedSetting.selectedView === 'year') {
       gantt.config.subscales[0].step = 3; // 每三個月顯示一次
     }
 
@@ -253,25 +292,27 @@ const GanttChart = () => {
 
     // 根據訂單種類分類顏色及圖標
     gantt.templates.task_class = function (start, end, task) {
+      // 根據作業狀態分類樣式
       switch (task[fieldCodes.作業狀態_完成度]) {
         case 'tags':
-          return 'hidden-task';
+          return ' hidden-task';
         case 'A-發行':
-          return 'A-發行';
+          return ' A-發行';
         case 'B-進行中':
-          return 'B-進行中';
+          return ' B-進行中';
         case 'C-驗收( V&V )':
-          return 'C-驗收';
+          return ' C-驗收';
         case 'F-結案':
-          return 'F-結案';
+          return ' F-結案';
         case 'P-暫緩':
-          return 'P-暫緩';
+          return ' P-暫緩';
         case 'R-返工':
-          return 'R-返工';
+          return ' R-返工';
         default:
           return '';
       }
     };
+  
 
     gantt.templates.task_text = function(start, end, task) {
       return task[fieldCodes.問題標題]; 
@@ -301,7 +342,7 @@ const GanttChart = () => {
         tree: true,
         template: function (task) {
           let colorClass = '';
-
+    
           switch (task[fieldCodes.作業狀態_完成度]) {
             case 'tags':
               colorClass = 'status-tags';
@@ -328,8 +369,12 @@ const GanttChart = () => {
               colorClass = 'status-default';
               break;
           }
-
-          return `<div class='status-color ${colorClass}'></div>${task[fieldCodes.問題標題]}`;
+    
+          const childCount = gantt.getChildren(task.id).length;
+    
+          const childText = childCount > 0 ? `#${childCount}` : '';
+    
+          return `<div class='status-color ${colorClass}'></div>${task[fieldCodes.問題標題]}${childText}`;
         },
       },
     ];
@@ -347,8 +392,6 @@ const GanttChart = () => {
     gantt.templates.timeline_cell_class = function (task, date) {
       return "gantt_timeline_cell";
     };
-
-    
 
     // 初始化甘特圖
     gantt.init(ganttContainer.current);
@@ -377,12 +420,12 @@ const GanttChart = () => {
       gantt.clearAll();
       gantt.detachAllEvents();
     };
-  }, [currentView, tasks]);
+  }, [selectedSetting, tasks]);
 
   useEffect(() => {
     gantt.clearAll();
     gantt.parse(tasks);
-  }, [tasks, currentView]);
+  }, [tasks, selectedSetting]);
 
   return (
     <ConfigProvider locale={zhTW}>
@@ -391,10 +434,9 @@ const GanttChart = () => {
           <Col xs={24} sm={12} md={8} lg={6} xl={3}>
             <label style={{ marginBottom: '8px', fontWeight: 'bold' }}>標籤類別：</label>
             <Select
-              value={selectedTag}
+              value={selectedSetting.selectedCategory}
               onChange={(value) => {
-                setSelectedTag(value || '(全部)');
-                setSelectedCategory('(全部)');
+                setSelectedSetting((prev) => ({ ...prev, selectedCategory: value || '(全部)', selectedTag: '(全部)' }));
               }}
               style={{ width: '200px' }}
               placeholder="選擇標籤類別"
@@ -419,8 +461,10 @@ const GanttChart = () => {
           <Col xs={24} sm={12} md={8} lg={6} xl={3}>
             <label style={{ marginBottom: '8px', fontWeight: 'bold' }}>標籤：</label>
             <Select
-              value={selectedCategory}
-              onChange={(value) => setSelectedCategory(value || '(全部)')}
+              value={selectedSetting.selectedTag}
+              onChange={(value) => {
+                setSelectedSetting((prev) => ({ ...prev, selectedTag: value || '(全部)' }));
+              }}
               style={{ width: '200px' }}
               placeholder="選擇標籤"
               allowClear
@@ -447,8 +491,10 @@ const GanttChart = () => {
           <Col xs={24} sm={12} md={8} lg={6} xl={3}>
             <label style={{ marginBottom: '8px', fontWeight: 'bold' }}>人員：</label>
             <Select
-              value={selectedUser}
-              onChange={(value) => setSelectedUser(value || '所有人員(ALL)')}
+              value={selectedSetting.selectedUser}
+              onChange={(value) => {
+                setSelectedSetting((prev) => ({ ...prev, selectedUser: value || '所有人員(ALL)' }));
+              }}
               style={{ width: '200px' }}
               placeholder="選擇人員"
               allowClear
@@ -470,8 +516,10 @@ const GanttChart = () => {
           <Col xs={24} sm={12} md={8} lg={6} xl={3}>
             <label style={{ marginBottom: '8px', fontWeight: 'bold' }}>發行日期：</label>
             <DatePicker
-              value={selectDate}
-              onChange={(value) => setSelectDate(value)}
+              value={dayjs(selectedSetting.selectedDate).isValid() ? dayjs(selectedSetting.selectedDate) : null}
+              onChange={(value) => {
+                setSelectedSetting((prev) => ({ ...prev, selectedDate: value }));
+              }}
               style={{ width: '200px' }}
               placeholder="選擇發行日期"
               suffixIcon={<CalendarOutlined />}
@@ -502,10 +550,9 @@ const GanttChart = () => {
             <label style={{ marginBottom: '8px', fontWeight: 'bold' }}>時間線：</label>
             <Radio.Group
               className="view-toggle"
-              value={currentView}
+              value={selectedSetting.selectedView}
               onChange={(e) => {
-                  document.cookie = `ken_view=${e.target.value}; path=/k/${kintone.app.getId()}/; expires=Fri, 31 Dec 9999 23:59:59 GMT`;
-                  handleViewChange(e.target.value)
+                handleViewChange(e.target.value)
               }}
             >
               <Radio.Button value="year">年</Radio.Button>
@@ -518,12 +565,26 @@ const GanttChart = () => {
           <Col xs={24} sm={12} md={8} lg={6} xl={1}>
             <label style={{ marginBottom: '8px', fontWeight: 'bold' }}>展開：</label>
             <Checkbox
-              checked={isOpen}
+              checked={selectedSetting.selectedOpen}
               onChange={(e) => {
-                document.cookie = `ken_showAll=${e.target.checked}; path=/k/${kintone.app.getId()}/; expires=Fri, 31 Dec 9999 23:59:59 GMT`;
-                setIsOpen(e.target.checked);
+                setSelectedSetting((prev) => ({ ...prev, selectedOpen: e.target.checked }));
               }}
             />
+          </Col>
+          <Col xs={24} sm={12} md={8} lg={6} xl={1}>
+            <Button
+              type="primary"
+              className={`gantt-today-${selectedSetting.selectedToday}`}
+              onClick={() => {
+                setSelectedSetting((prev) => ({
+                  ...prev,
+                  selectedCategory: selectedSetting.selectedToday ? '(全部)' :'公司',
+                  selectedToday: !selectedSetting.selectedToday
+                }));
+              }}
+            >
+              今日事
+            </Button>
           </Col>
         </Row>
       </div>
@@ -543,11 +604,11 @@ const GanttChart = () => {
                 <CloseOutlined className="close-icon" onClick={() => setIsModalShow(false)} />
               </div>
             </div>
-            <TimeLine 
-              record={currentTask} 
+            <TimeLine
+              record={currentTask}
               setIsModalShow={setIsModalShow}
-              setSelectedTag={setSelectedTag}
-              setSelectedCategory={setSelectedCategory}
+              setSelectedTag={(tag) => setSelectedSetting((prev) => ({ ...prev, selectedTag: tag }))}
+              setSelectedCategory={(category) => setSelectedSetting((prev) => ({ ...prev, selectedCategory: category }))}
             />
           </div>
         ) : (

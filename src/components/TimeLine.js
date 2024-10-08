@@ -226,8 +226,8 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
 
   //按下標籤
   const handleTagClick = useCallback((tag) => {
-    setSelectedTag('(全部)');
-    setSelectedCategory(tag);
+    setSelectedTag(tag);
+    setSelectedCategory('(全部)');
     setIsModalShow(false);
   }, []);
 

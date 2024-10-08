@@ -6,33 +6,33 @@
     display: none;
 }
 
-.A-發行 .gantt_task_content{
-    background-color: #91BBF7;
+.A-發行 .gantt_task_content {
+    background-color: rgba(145, 187, 247, 1);
     color: #FFFFFF;
 }
 
-.B-進行中 .gantt_task_content{
-    background-color: #72d766;
+.B-進行中 .gantt_task_content {
+    background-color: rgba(114, 215, 102, 1);
     color: #FFFFFF;
 }
 
-.C-驗收 .gantt_task_content{
-    background-color: #20C997;
+.C-驗收 .gantt_task_content {
+    background-color: rgba(32, 201, 151, 1);
     color: #FFFFFF;
 }
 
-.F-結案 .gantt_task_content{
-    background-color: #a6adb3;
+.F-結案 .gantt_task_content {
+    background-color: rgba(166, 173, 179, 1);
     color: #FFFFFF;
 }
 
-.P-暫緩 .gantt_task_content{
-    background-color: #EF6B6B;
+.P-暫緩 .gantt_task_content {
+    background-color: rgba(239, 107, 107, 1);
     color: #FFFFFF;
 }
 
-.R-返工 .gantt_task_content{
-    background-color: #FFA500;
+.R-返工 .gantt_task_content {
+    background-color: rgba(255, 165, 0, 1);
     color: #FFFFFF;
 }
 
@@ -83,6 +83,11 @@
     display: none; /* 隱藏子文件的圖標 */
 }
 
+.gantt-today-true {
+    background-color: #52c41a !important;
+    color: white !important;
+}
+
 /**/
 .filters {
     margin-left: 5px;
@@ -115,4 +120,54 @@
     display: flex;
     margin-top: 5px;
     gap: 10px;
+}
+
+.gantt_task_bar {
+    position: relative;
+}
+
+.gantt_task_content{
+    z-index: 1 !important; 
+}
+
+.A-發行 .gantt_task_progress {
+    background-color: rgba(109, 148, 196, 0.3) !important; /* 比原來的藍色更深一點 */
+    cursor: pointer !important;
+    z-index: 2 !important; 
+    position: relative;
+}
+
+.B-進行中 .gantt_task_progress {
+    background-color: rgba(91, 172, 82, 0.3) !important; /* 比原來的綠色更深一點 */
+    cursor: pointer !important;
+    z-index: 2 !important; 
+    position: relative;
+}
+
+.C-驗收 .gantt_task_progress {
+    background-color: rgba(27, 161, 121, 0.3) !important; /* 比原來的青色更深一點 */
+    cursor: pointer !important;
+    z-index: 2 !important; 
+    position: relative;
+}
+
+.F-結案 .gantt_task_progress {
+    background-color: rgba(133, 138, 144, 0.3) !important; /* 比原來的灰色更深一點 */
+    cursor: pointer !important;
+    z-index: 2 !important; 
+    position: relative;
+}
+
+.P-暫緩 .gantt_task_progress {
+    background-color: rgba(191, 85, 85, 0.3) !important; /* 比原來的紅色更深一點 */
+    cursor: pointer !important;
+    z-index: 2 !important; 
+    position: relative;
+}
+
+.R-返工 .gantt_task_progress {
+    background-color: rgba(204, 132, 0, 0.8) !important; /* 比原來的橙色更深一點 */
+    cursor: pointer !important;
+    z-index: 2 !important; 
+    position: relative;
 }
