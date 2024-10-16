@@ -63,6 +63,10 @@ const GanttChart = () => {
     week: [
       { unit: 'week', step: 1, format: '%Y年 第%W週' },
       { unit: 'day', step: 1, format: '%m月%d日' },
+    ],
+    day: [
+      { unit: 'week', step: 1, format: '%Y年 第%W週' },
+      { unit: 'day', step: 1, format: '%m月%d日' },
     ]
   };
 
@@ -397,7 +401,6 @@ const GanttChart = () => {
       const datePos = gantt.posFromDate(date);
     
       const nextDatePos = gantt.posFromDate(gantt.date.add(date, 1, gantt.getState().scale_unit));
-      console.log(datePos, todayPos , nextDatePos);
       if (nextDatePos <= todayPos) {
         // 完全過去的時間單位，填滿灰色
         return "gantt_timeline_past";
@@ -622,7 +625,7 @@ const GanttChart = () => {
             <label style={{ marginBottom: '8px', fontWeight: 'bold' }}>時間線：</label>
             <Radio.Group
               className="view-toggle"
-              value={selectedSetting.selectedView}
+              value={selectedSetting.selectedView == 'day' ? 'week' : selectedSetting.selectedView}
               onChange={(e) => {
                 handleViewChange(e.target.value)
               }}

@@ -87,6 +87,11 @@
     color: white !important;
 }
 
+.gantt-today-false {
+    background-color: #a6adb3 !important;
+    color: white !important;
+}
+
 /**/
 .filters {
     margin-left: 5px;
