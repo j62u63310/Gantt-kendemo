@@ -22,11 +22,12 @@ const GanttChart = () => {
   const showSetting = JSON.parse(getCookie("ken_Setting")) || {
       selectedCategory: '(全部)',
       selectedTag: '(全部)',
-      selectedUser: '所有人員(ALL)',
-      selectedDate: null,
+      selectedUser: kintone.getLoginUser().code,
+      selectedDate: dayjs().subtract(7, 'day'),
       selectedView: 'month',
       selectedOpen: false,
       selectedToday: false,
+      selectedShowDate: fieldCodes.開始時間,
   };
   
   const ganttContainer = useRef(null);
@@ -62,10 +63,6 @@ const GanttChart = () => {
     week: [
       { unit: 'week', step: 1, format: '%Y年 第%W週' },
       { unit: 'day', step: 1, format: '%m月%d日' },
-    ],
-    day: [
-      { unit: 'day', step: 1, format: '%Y年%m月%d日' },
-      { unit: 'hour', step: 1, format: '%H:%i' },
     ]
   };
 
@@ -272,7 +269,7 @@ const GanttChart = () => {
     } else if (selectedSetting.selectedView === 'month') {
       gantt.config.subscales[0].step = 1;
     } else if (selectedSetting.selectedView === 'year') {
-      gantt.config.subscales[0].step = 3; // 每三個月顯示一次
+      gantt.config.subscales[0].step = 1;
     }
 
     // 自定義任務編輯器中的日期範圍顯示
@@ -280,6 +277,9 @@ const GanttChart = () => {
       var formatFunc = gantt.date.date_to_str("%Y年%m月%d日 %H:%i");
       return task[fieldCodes.問題標題] + ", " + formatFunc(start) + " - " + formatFunc(end);
     };
+
+    gantt.config.autosize = 'xy';
+    gantt.config.smart_rendering = false;
 
     // 唯讀
     gantt.config.readonly = true;
@@ -333,6 +333,8 @@ const GanttChart = () => {
 
     gantt.plugins({ tooltip: true });
 
+    gantt.config.grid_width = 600;
+
     // 調整問題標題的列寬度和顯示方式
     gantt.config.columns = [
       {
@@ -384,25 +386,81 @@ const GanttChart = () => {
       return "";
     };
 
-    // 調整時間刻度的樣式，避免文字過小或重疊
     gantt.templates.scale_cell_class = function (date) {
       return "gantt_scale_cell";
     };
-
+    
+    // 標記任務區域上早於今天的日期為灰色
     gantt.templates.timeline_cell_class = function (task, date) {
+      const today = dayjs().startOf('day').toDate(); // 今天的開始時間
+      const todayPos = gantt.posFromDate(today); // 今天的起始位置
+      const datePos = gantt.posFromDate(date);
+    
+      const nextDatePos = gantt.posFromDate(gantt.date.add(date, 1, gantt.getState().scale_unit));
+      console.log(datePos, todayPos , nextDatePos);
+      if (nextDatePos <= todayPos) {
+        // 完全過去的時間單位，填滿灰色
+        return "gantt_timeline_past";
+      } else if (datePos < todayPos && todayPos < nextDatePos) {
+
+        const fillPercentage = ((todayPos - datePos) / (nextDatePos - datePos)) * 100;
+        
+        // 動態創建 class 並設置漸變背景色
+        const dynamicStyle = document.createElement('style');
+        dynamicStyle.innerHTML = `
+          .gantt_timeline_partially_filled_${datePos} {
+            background: linear-gradient(to right, #fff8dc ${fillPercentage}%, transparent ${fillPercentage}%);
+          }
+        `;
+        document.head.appendChild(dynamicStyle);
+        return `gantt_timeline_partially_filled_${datePos}`; // 使用動態創建的 class
+      }
+    
       return "gantt_timeline_cell";
     };
 
     // 初始化甘特圖
     gantt.init(ganttContainer.current);
 
+    // 解析任務資料
+    gantt.clearAll();
+    gantt.parse(tasks);
+
     gantt.detachAllEvents();
+
+    // 創建今天標記線的元素
+    const todayLine = document.createElement('div');
+    todayLine.className = 'today-line';
+  
+    const taskArea = gantt.$task_data;
+    if (taskArea) {
+      taskArea.appendChild(todayLine);
+    }
+  
+    const updateTodayLinePosition = () => {
+      const today = dayjs().startOf('day').toDate();
+      const todayPos = gantt.posFromDate(today);
+
+      const scrollState = gantt.getScrollState();
+      const scrollTop = scrollState.y;
+  
+      if (todayPos === null || isNaN(todayPos)) {
+        todayLine.style.display = 'none';
+      } else {
+        todayLine.style.display = 'block';
+        todayLine.style.marginTop = `${-scrollTop}px`;
+        todayLine.style.left = `${todayPos}px`;
+      }
+    };
+  
+    // 初始化時更新今天標記線的位置
+    updateTodayLinePosition();
 
     // 設置點擊事件
     gantt.attachEvent("onTaskClick", function (id, e) {
       const tooltipElement = document.querySelector('.gantt_tooltip');
       if (tooltipElement) {
-        tooltipElement.remove(); // 移除tooltip的DOM節點
+        tooltipElement.remove();
       }
       const task = gantt.getTask(id);
       if(task[fieldCodes.作業狀態_完成度] == 'tags') return true;
@@ -411,14 +469,25 @@ const GanttChart = () => {
       return true;
     });
 
-    // 解析任務資料
-    gantt.clearAll();
-    gantt.parse(tasks);
+    const events = [];
+    events.push(gantt.attachEvent('onGanttRender', updateTodayLinePosition));
+    events.push(gantt.attachEvent('onDataRender', updateTodayLinePosition));
+    events.push(gantt.attachEvent('onViewChange', updateTodayLinePosition));
+    events.push(gantt.attachEvent('onAfterTaskAdd', updateTodayLinePosition));
+    events.push(gantt.attachEvent('onAfterTaskUpdate', updateTodayLinePosition));
+    events.push(gantt.attachEvent('onParse', updateTodayLinePosition));
+
+    
+    taskArea.addEventListener('scroll', updateTodayLinePosition);
 
     // 清理函數，當組件卸載時清除甘特圖
     return () => {
       gantt.clearAll();
       gantt.detachAllEvents();
+      events.forEach((id) => gantt.detachEvent(id));
+      if (todayLine && todayLine.parentNode) {
+        todayLine.parentNode.removeChild(todayLine);
+      }
     };
   }, [selectedSetting, tasks]);
 
@@ -429,7 +498,7 @@ const GanttChart = () => {
 
   return (
     <ConfigProvider locale={zhTW}>
-      <div className="filters" style={{ marginBottom: '16px' }}>
+      <div className="filters" style={{ marginBottom: '16px', marginLeft: '10px' }}>
         <Row gutter={[24, 24]} align="middle">
           <Col xs={24} sm={12} md={8} lg={6} xl={3}>
             <label style={{ marginBottom: '8px', fontWeight: 'bold' }}>標籤類別：</label>
@@ -516,13 +585,16 @@ const GanttChart = () => {
           <Col xs={24} sm={12} md={8} lg={6} xl={3}>
             <label style={{ marginBottom: '8px', fontWeight: 'bold' }}>發行日期：</label>
             <DatePicker
-              value={dayjs(selectedSetting.selectedDate).isValid() ? dayjs(selectedSetting.selectedDate) : null}
+              value={dayjs(selectedSetting.selectedDate).isValid() ? dayjs(selectedSetting.selectedDate) : dayjs().subtract(7, 'day')}
               onChange={(value) => {
                 setSelectedSetting((prev) => ({ ...prev, selectedDate: value }));
               }}
               style={{ width: '200px' }}
               placeholder="選擇發行日期"
               suffixIcon={<CalendarOutlined />}
+              disabledDate={(current) => {
+                return current && current > dayjs().endOf('day');
+              }}
             />
           </Col>
 
@@ -546,7 +618,7 @@ const GanttChart = () => {
             </div>
           </Col>
 
-          <Col xs={24} sm={12} md={8} lg={6} xl={4}>
+          <Col xs={24} sm={12} md={8} lg={6} xl={3}>
             <label style={{ marginBottom: '8px', fontWeight: 'bold' }}>時間線：</label>
             <Radio.Group
               className="view-toggle"
@@ -558,18 +630,13 @@ const GanttChart = () => {
               <Radio.Button value="year">年</Radio.Button>
               <Radio.Button value="month">月</Radio.Button>
               <Radio.Button value="week">週</Radio.Button>
-              <Radio.Button value="day">日</Radio.Button>
             </Radio.Group>
           </Col>
 
           <Col xs={24} sm={12} md={8} lg={6} xl={1}>
-            <label style={{ marginBottom: '8px', fontWeight: 'bold' }}>展開：</label>
-            <Checkbox
-              checked={selectedSetting.selectedOpen}
-              onChange={(e) => {
-                setSelectedSetting((prev) => ({ ...prev, selectedOpen: e.target.checked }));
-              }}
-            />
+            <div className="show-all">
+              <Button type="primary" onClick={() =>  setSelectedSetting((prev) => ({ ...prev, selectedOpen: !prev.selectedOpen }))} className={`show-all-${selectedSetting.selectedOpen}`}>全展開</Button>
+            </div>
           </Col>
           <Col xs={24} sm={12} md={8} lg={6} xl={1}>
             <Button
@@ -588,7 +655,7 @@ const GanttChart = () => {
           </Col>
         </Row>
       </div>
-      <div ref={ganttContainer} style={{ width: '100%', height: '700px' }} />
+      <div ref={ganttContainer} style={{ width: '99%', marginLeft: '10px', overflow: 'hidden', }} />
       <Modal
         open={isModalShow}
         onCancel={() => setIsModalShow(false)}

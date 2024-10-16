@@ -36,7 +36,6 @@
     color: #FFFFFF;
 }
 
-
 .status-color {
     display: inline-block;
     width: 10px;
@@ -128,6 +127,29 @@
 
 .gantt_task_content{
     z-index: 1 !important; 
+}
+
+.sc-eqXzvo.kttbQU{
+    position: relative;
+    z-index: 9999;
+}
+  
+.gantt_timeline_past {
+    background-color: #fff8dc;
+}
+.gantt_timeline_cell {
+    background-color: transparent;
+}
+
+.today-line {
+    margin-top: 680px;
+    position: absolute;
+    height: 100%;
+    width: 2px;
+    background-color: red;
+    top: 0;
+    bottom: 0;
+    z-index: 5;
 }
 
 .A-發行 .gantt_task_progress {

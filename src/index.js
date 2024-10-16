@@ -12,7 +12,7 @@ const store = configureStore({
 
 (() => {
   kintone.events.on('app.record.index.show', (event) => {
-    if(event.viewId != "6475650") return;
+    if(event.viewId != "6475473") return;
     const root = ReactDOM.createRoot(document.querySelector('.root'));
     root.render(
       <React.StrictMode>
