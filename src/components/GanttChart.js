@@ -23,7 +23,7 @@ const GanttChart = () => {
       selectedCategory: '(全部)',
       selectedTag: '(全部)',
       selectedUser: kintone.getLoginUser().code,
-      selectedDate: dayjs().subtract(7, 'day'),
+      selectedDate: null,
       selectedView: 'month',
       selectedOpen: false,
       selectedToday: false,
@@ -52,17 +52,13 @@ const GanttChart = () => {
   }, [selectedSetting])
 
   const scales = {
-    year: [
+    month: [
       { unit: 'year', step: 1, format: '%Y年' },
       { unit: 'month', step: 1, format: '%m月' },
     ],
-    month: [
+    week: [
       { unit: 'month', step: 1, format: '%Y年 %m月' },
       { unit: 'week', step: 1, format: '第%W週' },
-    ],
-    week: [
-      { unit: 'week', step: 1, format: '%Y年 第%W週' },
-      { unit: 'day', step: 1, format: '%m月%d日' },
     ],
     day: [
       { unit: 'week', step: 1, format: '%Y年 第%W週' },
@@ -226,7 +222,6 @@ const GanttChart = () => {
   }, [tasks]);
 
   useEffect(() => {
-
     tasks.data.forEach(task => {
       if (task[fieldCodes.開始時間]) {
         const taskStartDate = new Date(task.start_date);
@@ -455,7 +450,20 @@ const GanttChart = () => {
         todayLine.style.left = `${todayPos}px`;
       }
     };
+
+    const customizeFirstScaleCell = () => {
+      // 獲取所有符合條件的 .gantt_scale_cell 元素
+      const smallScaleCells = document.querySelectorAll('.gantt_scale_line:nth-child(2) .gantt_scale_cell');
   
+      smallScaleCells.forEach((cell) => {
+        // 修改內容為「以前」
+        cell.innerText = '以前';
+      });
+    };
+  
+    // 在甘特圖渲染完成後執行修改
+    gantt.attachEvent('onGanttRender', customizeFirstScaleCell);
+
     // 初始化時更新今天標記線的位置
     updateTodayLinePosition();
 
@@ -485,6 +493,7 @@ const GanttChart = () => {
 
     // 清理函數，當組件卸載時清除甘特圖
     return () => {
+      gantt.detachEvent('onGanttRender', customizeFirstScaleCell);
       gantt.clearAll();
       gantt.detachAllEvents();
       events.forEach((id) => gantt.detachEvent(id));
@@ -588,7 +597,7 @@ const GanttChart = () => {
           <Col xs={24} sm={12} md={8} lg={6} xl={3}>
             <label style={{ marginBottom: '8px', fontWeight: 'bold' }}>發行日期：</label>
             <DatePicker
-              value={dayjs(selectedSetting.selectedDate).isValid() ? dayjs(selectedSetting.selectedDate) : dayjs().subtract(7, 'day')}
+              value={dayjs(selectedSetting.selectedDate).isValid() ? dayjs(selectedSetting.selectedDate) : null}
               onChange={(value) => {
                 setSelectedSetting((prev) => ({ ...prev, selectedDate: value }));
               }}
@@ -625,14 +634,14 @@ const GanttChart = () => {
             <label style={{ marginBottom: '8px', fontWeight: 'bold' }}>時間線：</label>
             <Radio.Group
               className="view-toggle"
-              value={selectedSetting.selectedView == 'day' ? 'week' : selectedSetting.selectedView}
+              value={selectedSetting.selectedView}
               onChange={(e) => {
                 handleViewChange(e.target.value)
               }}
             >
-              <Radio.Button value="year">年</Radio.Button>
               <Radio.Button value="month">月</Radio.Button>
               <Radio.Button value="week">週</Radio.Button>
+              <Radio.Button value="day">日</Radio.Button>
             </Radio.Group>
           </Col>
 
