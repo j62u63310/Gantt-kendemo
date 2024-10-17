@@ -148,6 +148,10 @@
     background-color: transparent;
 }
 
+.gantt_timeline_first_cell {
+    background-color: #d3d3d33a; 
+}
+
 .today-line {
     margin-top: 680px;
     position: absolute;
@@ -157,6 +161,19 @@
     top: 0;
     bottom: 0;
     z-index: 5;
+}
+
+.gantt_row:hover{
+    background-color: #e6f7ff !important;
+}
+
+.gantt_selected .gantt_task_line,
+.gantt_selected .gantt_task_cell {
+  border-color: rgba(211, 211, 211, 0.227) !important;
+}
+
+.gantt_selected {
+  background-color: transparent !important;
 }
 
 .A-發行 .gantt_task_progress {

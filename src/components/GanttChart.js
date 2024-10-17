@@ -80,12 +80,20 @@ const GanttChart = () => {
 
   const filterData = useMemo(() => {
     if (!行事曆資料) return [];
-    let filteredData = 行事曆資料;
+    let filteredData = JSON.parse(JSON.stringify(行事曆資料));
 
     if (selectedSetting.selectedDate) {
-      filteredData = filteredData.filter(record => {
-        const 發行日 = dayjs(record[fieldCodes.發行日].value);
-        return 發行日.isSame(selectedSetting.selectedDate, 'day') || 發行日.isAfter(selectedSetting.selectedDate, 'day');
+      filteredData = filteredData.map(record => {
+        if (dayjs(record[fieldCodes.發行日].value).isBefore(selectedSetting.selectedDate, 'day')) {
+          if (!record[fieldCodes.變更發行日]) record[fieldCodes.變更發行日] = { value: '' };
+          if (!record[fieldCodes.變更到期日]) record[fieldCodes.變更到期日] = { value: '' };
+          const 發行日 = dayjs(selectedSetting.selectedDate).subtract(1, selectedSetting.selectedView).startOf(selectedSetting.selectedView).add(selectedSetting.selectedView == 'week' ? 1 : 0, 'day').format('YYYY-MM-DD');
+          const 到期日 = dayjs(selectedSetting.selectedDate).subtract(selectedSetting.selectedView == 'day' ? 0 : 1, selectedSetting.selectedView).endOf(selectedSetting.selectedView).add(selectedSetting.selectedView == 'week' ? 2 : 0, 'day').format('YYYY-MM-DD');
+          record[fieldCodes.變更發行日].value = 發行日;
+          record[fieldCodes.變更到期日].value = 到期日;
+        }
+        
+        return record;
       });
     }
 
@@ -127,6 +135,7 @@ const GanttChart = () => {
     const recordData = [];
     const recordLinks = [];
     const 標籤ids = {};
+    const 問題編號Mapping = {};
 
     for (const record of 標籤資料) {
       const 標籤 = record[fieldCodes.標籤].value;
@@ -153,11 +162,20 @@ const GanttChart = () => {
     }
 
     for (const record of filterData) {
-      const 發行日 = dayjs(record[fieldCodes.發行日].value);
-      const 到期日 = record[fieldCodes.到期日]?.value ? dayjs(record[fieldCodes.到期日].value) : null;
-      const endDate = 到期日 ? 到期日 : 發行日.add(1, 'day');
-      const tags = record[fieldCodes.標籤].value.split(',');
 
+      const 發行日 = dayjs(record[fieldCodes.發行日].value).format('YYYY-MM-DD HH:mm');
+      const 到期日 = dayjs(record[fieldCodes.到期日].value).format('YYYY-MM-DD HH:mm') || dayjs(record[fieldCodes.發行日].value).add(1, 'day').format('YYYY-MM-DD HH:mm');
+
+      const 變更發行日 = record[fieldCodes.變更發行日]?.value
+        ? dayjs(record[fieldCodes.變更發行日].value).format('YYYY-MM-DD HH:mm')
+        : 發行日;
+    
+      const 變更到期日 = record[fieldCodes.變更到期日]?.value
+        ? dayjs(record[fieldCodes.變更到期日].value).format('YYYY-MM-DD HH:mm')
+        : 到期日;
+
+
+      const tags = record[fieldCodes.標籤].value.split(',');
       const 處理人員 = record[fieldCodes.處理人員].value.map(user => user.name).join(', ');
 
       for (const tag of tags) {
@@ -165,8 +183,8 @@ const GanttChart = () => {
         if (標籤ids[trimmedTag]) {
           recordData.push({
             id: recordData.length + 1,
-            start_date: 發行日.format('YYYY-MM-DD HH:mm'),
-            end_date: endDate.format('YYYY-MM-DD HH:mm'),
+            start_date: 變更發行日,
+            end_date: 變更到期日,
             [fieldCodes.問題標題]: record[fieldCodes.問題標題].value,
             [fieldCodes.優先度]: record[fieldCodes.優先度].value,
             [fieldCodes.標籤]: record[fieldCodes.標籤].value,
@@ -178,13 +196,33 @@ const GanttChart = () => {
             [fieldCodes.開始時間]: record[fieldCodes.開始時間].value,
             [fieldCodes.更新時間]: record[fieldCodes.更新時間].value,
             [fieldCodes.提醒時間]: record[fieldCodes.提醒時間].value,
-            [fieldCodes.發行日]: 發行日.format('YYYY-MM-DD HH:mm'),
-            [fieldCodes.到期日]: endDate.format('YYYY-MM-DD HH:mm'),
+            [fieldCodes.發行日]: 發行日,
+            [fieldCodes.到期日]: 到期日,
             $id: record["$id"].value,
             progress: 1,
             parent: 標籤ids[trimmedTag],
           });
+
+          問題編號Mapping[record[fieldCodes.問題編號].value] = recordData.length;
         }
+      }
+    }
+
+    for (const record of filterData) {
+      const 問題編號 = record[fieldCodes.問題編號].value;
+      const taskId = 問題編號Mapping[問題編號];
+    
+      const 關聯問題編號 = record[fieldCodes.關聯問題編號].value;
+    
+      if (關聯問題編號 && 問題編號Mapping[關聯問題編號]) {
+        const targetTaskId = 問題編號Mapping[關聯問題編號];
+    
+        recordLinks.push({
+          id: recordLinks.length + 1,
+          source: taskId,
+          target: targetTaskId,
+          type: gantt.config.links.finish_to_start,
+        });
       }
     }
 
@@ -213,7 +251,7 @@ const GanttChart = () => {
     gantt.config.subscales = scales[view].slice(1).map((scale) => ({
       unit: scale.unit,
       step: scale.step,
-      date: scale.format,
+      date: scale.format, 
     }));
 
     // 重新解析任務資料
@@ -280,6 +318,17 @@ const GanttChart = () => {
     gantt.config.autosize = 'xy';
     gantt.config.smart_rendering = false;
 
+    if (selectedSetting.selectedDate) {
+      const selectedDate = dayjs(selectedSetting.selectedDate);
+      let startDate = selectedDate.subtract(1, selectedSetting.selectedView).startOf(selectedSetting.selectedView).add(selectedSetting.selectedView == 'week' ? 1 : 0, 'day').toDate();
+      let endDate= selectedDate.add(selectedSetting.selectedView == 'day' ? 30 : 15, selectedSetting.selectedView).toDate();
+      gantt.config.start_date = startDate;
+      gantt.config.end_date = endDate;
+    } else {
+      gantt.config.start_date = null;
+      gantt.config.end_date = null;
+    }
+
     // 唯讀
     gantt.config.readonly = true;
 
@@ -324,8 +373,11 @@ const GanttChart = () => {
               <b>問題標題: </b> ${task[fieldCodes.問題標題] || ''}<br/>
               <b>處理人員: </b> ${task[fieldCodes.處理人員] || ''}<br/>
               <b>作業狀態: </b> ${task[fieldCodes.作業狀態_完成度] || ''}<br/>
-              <b>發行時間: </b> ${dayjs(start).format('YYYY/MM/DD HH:mm') || ''}<br/>
-              <b>到期時間: </b> ${dayjs(end).format('YYYY/MM/DD HH:mm') || ''}<br/>`;
+              <b>發行時間: </b> ${dayjs(start).isValid() ? dayjs(start).format('YYYY/MM/DD HH:mm') : ''}<br/>
+              <b>更新時間: </b> ${dayjs(task[fieldCodes.更新時間]).isValid() ? dayjs(task[fieldCodes.更新時間]).format('YYYY/MM/DD HH:mm') : ''}<br/>
+              <b>開始時間: </b> ${dayjs(task[fieldCodes.開始時間]).isValid() ? dayjs(task[fieldCodes.開始時間]).format('YYYY/MM/DD HH:mm') : ''}<br/>
+              <b>提醒時間: </b> ${dayjs(task[fieldCodes.提醒時間]).isValid() ? dayjs(task[fieldCodes.提醒時間]).format('YYYY/MM/DD HH:mm') : ''}<br/>
+              <b>到期時間: </b> ${dayjs(end).isValid() ? dayjs(end).format('YYYY/MM/DD HH:mm') : ''}<br/>`;
     };
 
     gantt.config.tooltip_timeout = 0;
@@ -394,15 +446,19 @@ const GanttChart = () => {
       const today = dayjs().startOf('day').toDate(); // 今天的開始時間
       const todayPos = gantt.posFromDate(today); // 今天的起始位置
       const datePos = gantt.posFromDate(date);
-    
+      
       const nextDatePos = gantt.posFromDate(gantt.date.add(date, 1, gantt.getState().scale_unit));
-      if (nextDatePos <= todayPos) {
-        // 完全過去的時間單位，填滿灰色
+      
+      // 獲取甘特圖範圍的第一天
+      const startDate = gantt.getState().min_date;
+      const startDatePos = gantt.posFromDate(startDate);
+    
+      if (datePos === startDatePos && selectedSetting.selectedDate) return "gantt_timeline_first_cell";
+      if (nextDatePos <= todayPos ) {
         return "gantt_timeline_past";
       } else if (datePos < todayPos && todayPos < nextDatePos) {
-
         const fillPercentage = ((todayPos - datePos) / (nextDatePos - datePos)) * 100;
-        
+    
         // 動態創建 class 並設置漸變背景色
         const dynamicStyle = document.createElement('style');
         dynamicStyle.innerHTML = `
@@ -411,7 +467,7 @@ const GanttChart = () => {
           }
         `;
         document.head.appendChild(dynamicStyle);
-        return `gantt_timeline_partially_filled_${datePos}`; // 使用動態創建的 class
+        return `gantt_timeline_partially_filled_${datePos}`;
       }
     
       return "gantt_timeline_cell";
@@ -452,13 +508,10 @@ const GanttChart = () => {
     };
 
     const customizeFirstScaleCell = () => {
-      // 獲取所有符合條件的 .gantt_scale_cell 元素
-      const smallScaleCells = document.querySelectorAll('.gantt_scale_line:nth-child(2) .gantt_scale_cell');
-  
-      smallScaleCells.forEach((cell) => {
-        // 修改內容為「以前」
-        cell.innerText = '以前';
-      });
+      if (selectedSetting.selectedDate){
+        const firstSmallScaleCell = document.querySelector('.gantt_scale_line:nth-child(2) .gantt_scale_cell');
+        if (firstSmallScaleCell) firstSmallScaleCell.innerText = '以前...';
+      }
     };
   
     // 在甘特圖渲染完成後執行修改
