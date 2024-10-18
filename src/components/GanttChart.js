@@ -198,31 +198,39 @@ const GanttChart = () => {
             [fieldCodes.提醒時間]: record[fieldCodes.提醒時間].value,
             [fieldCodes.發行日]: 發行日,
             [fieldCodes.到期日]: 到期日,
+            open: selectedSetting.selectedOpen,
             $id: record["$id"].value,
             progress: 1,
             parent: 標籤ids[trimmedTag],
           });
 
-          問題編號Mapping[record[fieldCodes.問題編號].value] = recordData.length;
+          問題編號Mapping[`${record[fieldCodes.問題編號].value}-${標籤ids[trimmedTag]}`] = recordData.length;
         }
       }
     }
 
     for (const record of filterData) {
       const 問題編號 = record[fieldCodes.問題編號].value;
-      const taskId = 問題編號Mapping[問題編號];
+      const tags = record[fieldCodes.標籤].value.split(',');
+      for (const tag of tags) {
+        const trimmedTag = tag.trim();
+        const taskId = 問題編號Mapping[`${問題編號}-${標籤ids[trimmedTag]}`];
     
-      const 關聯問題編號 = record[fieldCodes.關聯問題編號].value;
-    
-      if (關聯問題編號 && 問題編號Mapping[關聯問題編號]) {
-        const targetTaskId = 問題編號Mapping[關聯問題編號];
-    
-        recordLinks.push({
-          id: recordLinks.length + 1,
-          source: taskId,
-          target: targetTaskId,
-          type: gantt.config.links.finish_to_start,
-        });
+        const 關聯問題編號 = record[fieldCodes.關聯問題編號].value;
+      
+        if (關聯問題編號 && 問題編號Mapping[`${關聯問題編號}-${標籤ids[trimmedTag]}`]) {
+          const targetTaskId = 問題編號Mapping[`${關聯問題編號}-${標籤ids[trimmedTag]}`];
+
+          const task = recordData[taskId-1];
+          task.parent = targetTaskId;
+      
+          recordLinks.push({
+            id: recordLinks.length + 1,
+            source: targetTaskId,
+            target: taskId,
+            type: gantt.config.links.finish_to_start,
+          });
+        }
       }
     }
 
@@ -437,6 +445,16 @@ const GanttChart = () => {
       return "";
     };
 
+    gantt.templates.grid_folder = function(task) {
+      let level = 0;
+      while (task.parent && task.parent !== gantt.config.root_id) {
+        task = gantt.getTask(task.parent);
+        level++;
+      }
+      if(level >= 1) return ""
+      return `<div class='gantt_tree_icon gantt_folder_${selectedSetting.selectedOpen ? "open" : "closed"}'></div>`;
+    }
+
     gantt.templates.scale_cell_class = function (date) {
       return "gantt_scale_cell";
     };
@@ -487,9 +505,8 @@ const GanttChart = () => {
     todayLine.className = 'today-line';
   
     const taskArea = gantt.$task_data;
-    if (taskArea) {
-      taskArea.appendChild(todayLine);
-    }
+    if (taskArea) taskArea.appendChild(todayLine);
+    
   
     const updateTodayLinePosition = () => {
       const today = dayjs().startOf('day').toDate();
@@ -514,22 +531,30 @@ const GanttChart = () => {
       }
     };
   
-    // 在甘特圖渲染完成後執行修改
     gantt.attachEvent('onGanttRender', customizeFirstScaleCell);
+    gantt.attachEvent('onDataRender', customizeFirstScaleCell);
+    gantt.attachEvent('onViewChange', customizeFirstScaleCell);
+    gantt.attachEvent('onAfterTaskUpdate', customizeFirstScaleCell);
 
     // 初始化時更新今天標記線的位置
     updateTodayLinePosition();
 
     // 設置點擊事件
     gantt.attachEvent("onTaskClick", function (id, e) {
+      const clickedElement = e.target;
+    
+      if (gantt.getTaskRowNode(id) && gantt.getTaskRowNode(id).contains(clickedElement)) return true;
+      
       const tooltipElement = document.querySelector('.gantt_tooltip');
       if (tooltipElement) {
         tooltipElement.remove();
       }
+    
       const task = gantt.getTask(id);
-      if(task[fieldCodes.作業狀態_完成度] == 'tags') return true;
+      if (task[fieldCodes.作業狀態_完成度] === 'tags') return true;
       setCurrentTask(task);
       setIsModalShow(true);
+    
       return true;
     });
 
@@ -546,7 +571,6 @@ const GanttChart = () => {
 
     // 清理函數，當組件卸載時清除甘特圖
     return () => {
-      gantt.detachEvent('onGanttRender', customizeFirstScaleCell);
       gantt.clearAll();
       gantt.detachAllEvents();
       events.forEach((id) => gantt.detachEvent(id));
