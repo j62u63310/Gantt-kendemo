@@ -14,6 +14,23 @@ const App = () => {
     dispatch(fetchAllData(kintone.app.getId(), "", 'SET_行事曆_DATA'));
     dispatch(fetchAllData(appId.標籤AppId, `order by ${fieldCodes.最後取用時間} desc`, 'SET_標籤_DATA'));
     dispatch(fetchAllUser("SET_登入帳號_DATA"));
+  
+    const style = document.createElement('style');
+    style.innerHTML = `
+      html::-webkit-scrollbar, 
+      body::-webkit-scrollbar {
+        display: none; /* 隱藏滾動條 */
+      }
+      
+      html {
+        scrollbar-width: none;
+      }
+    `;
+    document.head.appendChild(style);
+    window.scrollTo({
+      top: 850,
+      behavior: 'smooth'
+    });
   }, [dispatch]);
 
   return (

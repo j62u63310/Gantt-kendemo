@@ -65,12 +65,13 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
   }, []);
 
   //更新開始時間
-  const setStartTime = useCallback(async (currentTime, id) => {
+  const setStartTime = useCallback(async (currentTime, id, showDate) => {
+    const showMessage = showDate == fieldCodes.提醒時間 ? '作業規劃/提醒時間' : '開始時間' ;
     try {
       const now = new Date();
       now.setHours(now.getHours() + 8);
       const formattedTime = new Date(currentTime.getTime() + 8 * 60 * 60 * 1000).toISOString().replace('Z', '+08:00');
-      const updateData = { 開始時間: { value: formattedTime }, 更新時間: { value: now.toISOString().replace('Z', '+08:00') } };
+      const updateData = { [showDate]: { value: formattedTime }, 更新時間: { value: now.toISOString().replace('Z', '+08:00') } };
       
       dispatch({ type: 'UPDATE_行事曆_ITEM', payload: { id, data: updateData } });
 
@@ -78,14 +79,14 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
         app: kintone.app.getId(), 
         id: id, 
         record: {
-          開始時間: { value: formattedTime }
+          [showDate]: { value: formattedTime }
         }
       });
 
-      message.success(`開始作業時間已記錄：${formatDateTime(currentTime)}`);
+      message.success(`${showMessage}已記錄：${formatDateTime(currentTime)}`);
     } catch (error) {
-      console.error("更新開始作業時間失敗", error);
-      message.error("更新開始作業時間失敗");
+      console.error(`更新${showMessage}失敗`, error);
+      message.error(`更新${showMessage}失敗`);
     }finally{
       setIsModalShow(false);
     }
@@ -155,7 +156,7 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
   
     if (isConfirmed && value) {
       selectedDate.setHours(0, 0, 0, 0);
-      await setStartTime(selectedDate, id);
+      await setStartTime(selectedDate, id, fieldCodes.提醒時間);
   
       // 顯示確認訊息
       await Swal.fire({
@@ -174,7 +175,7 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
   }, [setStartTime]);
 
   const handleStartWorkNow = useCallback(async (id)=>{
-    setStartTime(new Date(), id);
+    setStartTime(new Date(), id, fieldCodes.開始時間);
 
     const formatDateWithWeekday = (date) => {
       return format(date, 'yyyy/MM/dd (EEEE)', { locale: zhTW });
@@ -270,7 +271,6 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
     const 標籤 = record[fieldCodes.標籤].split(',').map(tag => tag.trim());
 
     const 說明 = record[fieldCodes.說明];
-    const 驗證說明 = record[fieldCodes.驗證說明];
 
     if (!日期) return null;
 
@@ -295,18 +295,7 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
           </div>
           <div className='timeline-detail'>
             <div className="collapsible-text-section">
-              <h4 style={{ fontSize: '1.1em', fontWeight: 'bold', marginBottom: '4px' }}>說明：</h4>
-              <div>
-                {說明.split('\n').filter(line => line.trim() !== '').map((line, index) => (
-                  <p key={index} className="collapsible-text-line">
-                    {line}
-                  </p>
-                ))}
-              </div>
-            </div>
-            <div className="collapsible-text-section">
-              <h4 style={{ fontSize: '1.1em', fontWeight: 'bold', marginBottom: '4px' }}>V&V驗證說明：</h4>
-              <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(驗證說明) }} />
+              <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(說明) }} />
             </div>
             <div className="timeline-users">
               {處理人員.length > 0 ? 處理人員.map((person, index) => (
@@ -365,7 +354,7 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
               </div>
               <Button type="primary" className="view-button" style={{backgroundColor: "#52c41a"}} onClick={() => handleEdit(record.$id, false)}>查看資料</Button>
               <Button type="primary" className="edit-button" style={{backgroundColor: "#1890ff"}} onClick={() => handleEdit(record.$id, true)}>編輯資料</Button>
-              <Button type="primary" className="start-button"  style={{backgroundColor: "#faad14"}} onClick={() => handleStartWork(record.$id)}>作業規劃</Button>
+              <Button type="primary" className="start-button"  style={{backgroundColor: "#faad14"}} onClick={() => handleStartWork(record.$id)}>作業規劃/提醒時間</Button>
             </div>
           </div>
         </div>

@@ -74,7 +74,8 @@ const GanttChart = () => {
   const filteredCategories = useMemo(() => {
     const filteredData = selectedSetting.selectedCategory === '(全部)'
       ? 標籤資料
-      : 標籤資料.filter(record => record[fieldCodes.標籤類別].value === selectedSetting.selectedCategory);
+      : 標籤資料.filter(record => 
+        selectedSetting.selectedCategory == '今日事' ? record[fieldCodes.標籤類別].value== '公司名_MA' || record[fieldCodes.標籤類別].value== '公司名_SI' || record[fieldCodes.標籤類別].value== '公司名_POC'  : record[fieldCodes.標籤類別].value === selectedSetting.selectedCategory);
     return filteredData;
   }, [selectedSetting, 標籤資料]);
 
@@ -100,7 +101,8 @@ const GanttChart = () => {
     if(selectedSetting.selectedToday){
       filteredData = filteredData.filter(record => {
         const 開始時間 = dayjs(record[fieldCodes.開始時間].value);
-        return 開始時間.isSame(dayjs(new Date()), 'day') || 開始時間.isAfter(dayjs(new Date()), 'day');
+        const 提醒時間 = dayjs(record[fieldCodes.提醒時間].value);
+        return 開始時間.isSame(dayjs(new Date()), 'day') || 開始時間.isAfter(dayjs(new Date()), 'day') || 提醒時間.isSame(dayjs(new Date()), 'day') || 提醒時間.isAfter(dayjs(new Date()), 'day');
       });
     }
 
@@ -137,10 +139,10 @@ const GanttChart = () => {
     const 標籤ids = {};
     const 問題編號Mapping = {};
 
-    for (const record of 標籤資料) {
+    for (const record of filteredCategories) {
       const 標籤 = record[fieldCodes.標籤].value;
       const 標籤類別 = record[fieldCodes.標籤類別].value;
-      if (selectedSetting.selectedCategory !== '(全部)' && 標籤類別 !== selectedSetting.selectedCategory) continue;
+      if ((selectedSetting.selectedCategory !== '(全部)' && selectedSetting.selectedCategory !== '今日事') && 標籤類別 !== selectedSetting.selectedCategory) continue;
       if (selectedSetting.selectedTag !== '(全部)' && 標籤 !== selectedSetting.selectedTag) continue;
       if (!filterData.some(record => {
         const 所有標籤 = record[fieldCodes.標籤].value.split(',');
@@ -189,7 +191,6 @@ const GanttChart = () => {
             [fieldCodes.優先度]: record[fieldCodes.優先度].value,
             [fieldCodes.標籤]: record[fieldCodes.標籤].value,
             [fieldCodes.說明]: record[fieldCodes.說明].value,
-            [fieldCodes.驗證說明]: record[fieldCodes.驗證說明].value,
             [fieldCodes.問題編號]: record[fieldCodes.問題編號].value,
             [fieldCodes.處理人員]: 處理人員,
             [fieldCodes.作業狀態_完成度]: record[fieldCodes.作業狀態_完成度]?.value,
@@ -323,7 +324,6 @@ const GanttChart = () => {
       return task[fieldCodes.問題標題] + ", " + formatFunc(start) + " - " + formatFunc(end);
     };
 
-    gantt.config.autosize = 'xy';
     gantt.config.smart_rendering = false;
 
     if (selectedSetting.selectedDate) {
@@ -536,7 +536,6 @@ const GanttChart = () => {
     gantt.attachEvent('onViewChange', customizeFirstScaleCell);
     gantt.attachEvent('onAfterTaskUpdate', customizeFirstScaleCell);
 
-    // 初始化時更新今天標記線的位置
     updateTodayLinePosition();
 
     // 設置點擊事件
@@ -558,25 +557,10 @@ const GanttChart = () => {
       return true;
     });
 
-    const events = [];
-    events.push(gantt.attachEvent('onGanttRender', updateTodayLinePosition));
-    events.push(gantt.attachEvent('onDataRender', updateTodayLinePosition));
-    events.push(gantt.attachEvent('onViewChange', updateTodayLinePosition));
-    events.push(gantt.attachEvent('onAfterTaskAdd', updateTodayLinePosition));
-    events.push(gantt.attachEvent('onAfterTaskUpdate', updateTodayLinePosition));
-    events.push(gantt.attachEvent('onParse', updateTodayLinePosition));
-
-    
-    taskArea.addEventListener('scroll', updateTodayLinePosition);
-
     // 清理函數，當組件卸載時清除甘特圖
     return () => {
       gantt.clearAll();
       gantt.detachAllEvents();
-      events.forEach((id) => gantt.detachEvent(id));
-      if (todayLine && todayLine.parentNode) {
-        todayLine.parentNode.removeChild(todayLine);
-      }
     };
   }, [selectedSetting, tasks]);
 
@@ -594,7 +578,7 @@ const GanttChart = () => {
             <Select
               value={selectedSetting.selectedCategory}
               onChange={(value) => {
-                setSelectedSetting((prev) => ({ ...prev, selectedCategory: value || '(全部)', selectedTag: '(全部)' }));
+                setSelectedSetting((prev) => ({ ...prev, selectedCategory: value || '(全部)', selectedTag: '(全部)', selectedToday: false }));
               }}
               style={{ width: '200px' }}
               placeholder="選擇標籤類別"
@@ -734,7 +718,7 @@ const GanttChart = () => {
               onClick={() => {
                 setSelectedSetting((prev) => ({
                   ...prev,
-                  selectedCategory: selectedSetting.selectedToday ? '(全部)' :'公司',
+                  selectedCategory: selectedSetting.selectedToday ? '(全部)' : '今日事',
                   selectedToday: !selectedSetting.selectedToday
                 }));
               }}
@@ -744,7 +728,7 @@ const GanttChart = () => {
           </Col>
         </Row>
       </div>
-      <div ref={ganttContainer} style={{ width: '99%', marginLeft: '10px', overflow: 'hidden', }} />
+      <div ref={ganttContainer} style={{ height: '600px', width: '99%', marginLeft: '10px'}} />
       <Modal
         open={isModalShow}
         onCancel={() => setIsModalShow(false)}
