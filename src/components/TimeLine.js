@@ -274,6 +274,35 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
 
     if (!日期) return null;
 
+    const convertUrlsToLinks = (text) => {
+      const urlRegex = /(https?:\/\/[^\s<>\u4e00-\u9fff]+)/g;
+      return text.replace(urlRegex, (url) => {
+        console.log(url);
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+      });
+    };
+
+    const renderText = () => {
+  
+      const sanitizedText = DOMPurify.sanitize(說明);
+      const textWithLinks = convertUrlsToLinks(sanitizedText);
+    
+      const strippedText = textWithLinks
+        .replace(/<br\s*\/?>/g, '')
+        .replace(/<div\b[^>]*>(.*?)<\/div>/gi, '$1')
+        .trim();  
+    
+      if (!strippedText || strippedText == '<div></div>') {
+        return <div className="collapsible-text-section">無內容</div>;
+      }
+    
+      return (
+        <div className="collapsible-text-section">
+          <div dangerouslySetInnerHTML={{ __html: textWithLinks }} />
+        </div>
+      );
+    };
+
     return (
       <div key={record.$id} className="timeline-item" style={{ '--status-color': statusColor }}>
         <div className="timeline-status-bar"></div>
@@ -295,7 +324,7 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
           </div>
           <div className='timeline-detail'>
             <div className="collapsible-text-section">
-              <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(說明) }} />
+              {renderText()}
             </div>
             <div className="timeline-users">
               {處理人員.length > 0 ? 處理人員.map((person, index) => (

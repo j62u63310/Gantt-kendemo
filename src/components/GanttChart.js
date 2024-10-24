@@ -402,40 +402,64 @@ const GanttChart = () => {
         width: '*',
         tree: true,
         template: function (task) {
-          let colorClass = '';
-    
-          switch (task[fieldCodes.作業狀態_完成度]) {
-            case 'tags':
-              colorClass = 'status-tags';
-              break;
-            case 'A-發行':
-              colorClass = 'status-A-發行';
-              break;
-            case 'B-進行中':
-              colorClass = 'status-B-進行中';
-              break;
-            case 'C-驗收( V&V )':
-              colorClass = 'status-C-驗收';
-              break;
-            case 'F-結案':
-              colorClass = 'status-F-結案';
-              break;
-            case 'P-暫緩':
-              colorClass = 'status-P-暫緩';
-              break;
-            case 'R-返工':
-              colorClass = 'status-R-返工';
-              break;
-            default:
-              colorClass = 'status-default';
-              break;
+          // Function to get all ancestors including the task itself
+          function getAncestors(taskId) {
+            let ancestors = [];
+            let currentId = taskId;
+            while (gantt.isTaskExists(currentId)) {
+              let currentTask = gantt.getTask(currentId);
+              ancestors.unshift(currentTask); // Add to the front to maintain order
+              currentId = currentTask.parent;
+              if (!currentId || currentId === gantt.config.root_id) {
+                break;
+              }
+            }
+            return ancestors;
           }
     
+          // Get ancestors and determine color classes
+          let ancestors = getAncestors(task.id);
+          let colorDivs = ancestors
+            .map(function (ancestorTask) {
+              let colorClass = '';
+              switch (ancestorTask[fieldCodes.作業狀態_完成度]) {
+                case 'tags':
+                  colorClass = 'status-tags';
+                  break;
+                case 'A-發行':
+                  colorClass = 'status-A-發行';
+                  break;
+                case 'B-進行中':
+                  colorClass = 'status-B-進行中';
+                  break;
+                case 'C-驗收( V&V )':
+                  colorClass = 'status-C-驗收';
+                  break;
+                case 'F-結案':
+                  colorClass = 'status-F-結案';
+                  break;
+                case 'P-暫緩':
+                  colorClass = 'status-P-暫緩';
+                  break;
+                case 'R-返工':
+                  colorClass = 'status-R-返工';
+                  break;
+                default:
+                  colorClass = 'status-default';
+                  break;
+              }
+              return `<div class='status-color ${colorClass}'></div>`;
+            })
+            .join('');
+    
           const childCount = gantt.getChildren(task.id).length;
+          const childText =
+            childCount > 0
+              ? `<span style="background-color: #ff7875; color: white; padding: 2px 6px; border-radius: 10px; font-size: 12px; margin-left: 8px;">${childCount}</span>`
+              : '';
     
-          const childText = childCount > 0 ? `#${childCount}` : '';
-    
-          return `<div class='status-color ${colorClass}'></div>${task[fieldCodes.問題標題]}${childText}`;
+          // Return the new template with color indicators of ancestors and the task itself
+          return `${colorDivs}${task[fieldCodes.問題標題]}${childText}`;
         },
       },
     ];
@@ -497,6 +521,8 @@ const GanttChart = () => {
     // 解析任務資料
     gantt.clearAll();
     gantt.parse(tasks);
+
+    gantt.showDate(new Date());
 
     gantt.detachAllEvents();
 
