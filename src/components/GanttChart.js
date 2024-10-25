@@ -51,20 +51,41 @@ const GanttChart = () => {
     document.cookie = `ken_Setting=${JSON.stringify(selectedSetting)}; path=/k/${kintone.app.getId()}/; expires=Fri, 31 Dec 9999 23:59:59 GMT`;
   }, [selectedSetting])
 
-  const scales = {
-    month: [
-      { unit: 'year', step: 1, format: '%Y年' },
-      { unit: 'month', step: 1, format: '%m月' },
-    ],
-    week: [
-      { unit: 'month', step: 1, format: '%Y年 %m月' },
-      { unit: 'week', step: 1, format: '第%W週' },
-    ],
-    day: [
-      { unit: 'week', step: 1, format: '%Y年 第%W週' },
-      { unit: 'day', step: 1, format: '%m月%d日' },
-    ]
-  };
+  const scales = useMemo(() => {
+    const formatFunction = (date, formatString) => {
+      if (selectedSetting.selectedDate && dayjs(date).isBefore(dayjs(selectedSetting.selectedDate), selectedSetting.selectedView)) {
+        return '以前';
+      }
+      return gantt.date.date_to_str(formatString)(date);
+    };
+  
+    return {
+      month: [
+        { unit: 'year', step: 1, format: '%Y年' },
+        {
+          unit: 'month',
+          step: 1,
+          format: (date) => formatFunction(date, '%m月'),
+        },
+      ],
+      week: [
+        { unit: 'month', step: 1, format: '%Y年 %m月' },
+        {
+          unit: 'week',
+          step: 1,
+          format: (date) => formatFunction(date, '第%W週'),
+        },
+      ],
+      day: [
+        { unit: 'week', step: 1, format: '%Y年 第%W週' },
+        {
+          unit: 'day',
+          step: 1,
+          format: (date) => formatFunction(date, '%m月%d日'),
+        },
+      ],
+    };
+  }, [selectedSetting.selectedDate, selectedSetting.selectedView]);
 
   const uniqueTags = useMemo(() => {
     const allTags = 標籤資料.map((record) => record[fieldCodes.標籤類別].value);
@@ -269,33 +290,6 @@ const GanttChart = () => {
   }, [tasks]);
 
   useEffect(() => {
-    tasks.data.forEach(task => {
-      if (task[fieldCodes.開始時間]) {
-        const taskStartDate = new Date(task.start_date);
-        const taskEndDate = new Date(task.end_date);
-        const startTime = new Date(task[fieldCodes.開始時間]);
-    
-        if (startTime >= taskStartDate && startTime <= taskEndDate) {
-          const totalDuration = taskEndDate - taskStartDate;
-    
-          const durationUntilStartTime = startTime - taskStartDate;
-    
-          let progress = durationUntilStartTime / totalDuration;
-    
-          if (progress < 0) progress = 0;
-          if (progress > 1) progress = 1;
-    
-          task.progress = progress;
-        } else if (startTime > taskEndDate) {
-          task.progress = 1;
-        } else {
-          task.progress = 0;
-        }
-      } else {
-        task.progress = 0;
-      }
-    });
-
     gantt.config.xml_date = '%Y-%m-%d %H:%i';
     gantt.config.date_format = '%Y-%m-%d %H:%i';
     gantt.config.date_grid = '%Y年%m月%d日 %H:%i';
@@ -309,20 +303,8 @@ const GanttChart = () => {
       date: scale.format,
     }));
 
-    // 調整時間刻度的步長和格式
-    if (selectedSetting.selectedView === 'week') {
-      gantt.config.subscales[0].step = 1;
-    } else if (selectedSetting.selectedView === 'month') {
-      gantt.config.subscales[0].step = 1;
-    } else if (selectedSetting.selectedView === 'year') {
-      gantt.config.subscales[0].step = 1;
-    }
+    gantt.config.subscales[0].step = 1;
 
-    // 自定義任務編輯器中的日期範圍顯示
-    gantt.templates.lightbox_header = function (start, end, task) {
-      var formatFunc = gantt.date.date_to_str("%Y年%m月%d日 %H:%i");
-      return task[fieldCodes.問題標題] + ", " + formatFunc(start) + " - " + formatFunc(end);
-    };
 
     gantt.config.smart_rendering = false;
 
@@ -348,22 +330,24 @@ const GanttChart = () => {
 
     // 根據訂單種類分類顏色及圖標
     gantt.templates.task_class = function (start, end, task) {
+      const isOpened = gantt.getTask(task.id).$open ? ' opened-task' : '';
+
       // 根據作業狀態分類樣式
       switch (task[fieldCodes.作業狀態_完成度]) {
         case 'tags':
-          return ' hidden-task';
+          return isOpened ? 'hidden-task' : 'tag';
         case 'A-發行':
-          return ' A-發行';
+          return 'A-發行';
         case 'B-進行中':
-          return ' B-進行中';
+          return 'B-進行中';
         case 'C-驗收( V&V )':
-          return ' C-驗收';
+          return 'C-驗收';
         case 'F-結案':
-          return ' F-結案';
+          return 'F-結案';
         case 'P-暫緩':
-          return ' P-暫緩';
+          return 'P-暫緩';
         case 'R-返工':
-          return ' R-返工';
+          return 'R-返工';
         default:
           return '';
       }
@@ -371,21 +355,133 @@ const GanttChart = () => {
   
 
     gantt.templates.task_text = function(start, end, task) {
-      return task[fieldCodes.問題標題]; 
+      function getTopPosition(className) {
+        switch (className) {
+          case 'line-start':
+            return 2;
+          case 'line-update':
+            return 22;
+          case 'line-reminder':
+            return 24;
+          default:
+            return 0;
+        }
+      }
+
+      if (!start || !end) {
+        return '';
+      }
+    
+      const taskStart = +start;
+      const taskEnd = +end;
+      const taskDuration = taskEnd - taskStart;
+    
+      if (taskDuration <= 0) {
+        return '';
+      }
+    
+      const timeFields = [
+        { 
+          field: fieldCodes.開始時間, 
+          className: 'line-start', 
+          color: '#51cf66',
+          label: '開始時間'
+        },
+        { 
+          field: fieldCodes.更新時間, 
+          className: 'line-update', 
+          color: '#339af0',
+          label: '更新時間'
+        },
+        { 
+          field: fieldCodes.提醒時間, 
+          className: 'line-reminder', 
+          color: '#ff6b6b',
+          label: '提醒時間'
+        },
+      ];
+    
+      const linesHTML = timeFields.map(({ field, className, color, label }) => {
+        const timeValue = task[field];
+        if (timeValue && dayjs(timeValue).isValid()) {
+          const timeDate = new Date(timeValue);
+          const duration = timeDate - taskStart;
+          let durationPercent = (duration / taskDuration) * 100;
+          const isOverdue = durationPercent > 100;
+          
+          if (durationPercent >= 0) {
+            if (className === 'line-reminder') {
+              return `
+                <div class="custom-triangle ${className}" style="left: ${durationPercent}%; top: ${getTopPosition(className)}px;" title="${label}: ${dayjs(timeDate).format('YYYY/MM/DD HH:mm')}"></div>
+              `;
+            }
+            if (className === 'line-update') {
+              return `
+                <div class="custom-circle ${className}" style="left: ${durationPercent}%;background-color: ${color}; top: ${getTopPosition(className)}px;" title="${label}: ${dayjs(timeDate).format('YYYY/MM/DD HH:mm')}"></div>
+              `;
+            }
+
+            if (isOverdue) {
+              // 超過到期日的部分
+              const solidLineWidth = 100; // 實線到達100%
+              const overdueDuration = timeDate - taskEnd;
+              const overduePercent = (overdueDuration / taskDuration) * 100;
+    
+              return `
+                <div class="custom-line ${className}" style="width: ${solidLineWidth}%; background-color: ${color}; top: ${getTopPosition(className)}px;" title="${label}: ${dayjs(timeDate).format('YYYY/MM/DD HH:mm')}"></div>
+                <div class="custom-line ${className} dashed" style="left: ${solidLineWidth}%; width: ${overduePercent}%; background-color: ${color}; top: ${getTopPosition(className)}px;" title="${label}: ${dayjs(timeDate).format('YYYY/MM/DD HH:mm')}"></div>
+              `;
+            } else {
+              return `
+                <div class="custom-line ${className}" style="width: ${durationPercent}%; background-color: ${color}; top: ${getTopPosition(className)}px;" title="${label}: ${dayjs(timeDate).format('YYYY/MM/DD HH:mm')}"></div>
+              `;
+            }
+          }
+        }
+        return '';
+      }).join('');
+    
+      return `
+        <div class="custom-task-content">
+          ${linesHTML}
+          <div class="task-title">${task[fieldCodes.問題標題]}</div>
+        </div>
+      `;
     };
 
     // 設置 tooltip 顯示
     gantt.templates.tooltip_text = function (start, end, task) {
       if (task[fieldCodes.作業狀態_完成度] === 'tags') return;
-      return `<b>問題編號: </b> #${task[fieldCodes.問題編號] || ''}<br/>
-              <b>問題標題: </b> ${task[fieldCodes.問題標題] || ''}<br/>
-              <b>處理人員: </b> ${task[fieldCodes.處理人員] || ''}<br/>
-              <b>作業狀態: </b> ${task[fieldCodes.作業狀態_完成度] || ''}<br/>
-              <b>發行時間: </b> ${dayjs(start).isValid() ? dayjs(start).format('YYYY/MM/DD HH:mm') : ''}<br/>
-              <b>更新時間: </b> ${dayjs(task[fieldCodes.更新時間]).isValid() ? dayjs(task[fieldCodes.更新時間]).format('YYYY/MM/DD HH:mm') : ''}<br/>
-              <b>開始時間: </b> ${dayjs(task[fieldCodes.開始時間]).isValid() ? dayjs(task[fieldCodes.開始時間]).format('YYYY/MM/DD HH:mm') : ''}<br/>
-              <b>提醒時間: </b> ${dayjs(task[fieldCodes.提醒時間]).isValid() ? dayjs(task[fieldCodes.提醒時間]).format('YYYY/MM/DD HH:mm') : ''}<br/>
-              <b>到期時間: </b> ${dayjs(end).isValid() ? dayjs(end).format('YYYY/MM/DD HH:mm') : ''}<br/>`;
+    
+      return `
+        <b>問題編號: </b> #${task[fieldCodes.問題編號] || ''}<br/>
+        <b>問題標題: </b> ${task[fieldCodes.問題標題] || ''}<br/>
+        <b>處理人員: </b> ${task[fieldCodes.處理人員] || ''}<br/>
+        <b>作業狀態: </b> ${task[fieldCodes.作業狀態_完成度] || ''}<br/>
+        <b>發行時間: </b> ${
+          dayjs(start).isValid()
+            ? dayjs(start).format('YYYY/MM/DD HH:mm')
+            : '未設定'
+        }<br/>
+        <b>到期時間: </b> ${
+          dayjs(end).isValid() ? dayjs(end).format('YYYY/MM/DD HH:mm') : '未設定'
+        }<br/>
+        <b style="color: #51cf66;">開始時間: </b> ${
+          dayjs(task[fieldCodes.開始時間]).isValid()
+            ? dayjs(task[fieldCodes.開始時間]).format('YYYY/MM/DD HH:mm')
+            : '未設定'
+        }<br/>
+        <b style="color: #339af0;">更新時間: </b> ${
+          dayjs(task[fieldCodes.更新時間]).isValid()
+            ? dayjs(task[fieldCodes.更新時間]).format('YYYY/MM/DD HH:mm')
+            : '未設定'
+        }<br/>
+        <b style="color: #ff6b6b;">提醒時間: </b> ${
+          dayjs(task[fieldCodes.提醒時間]).isValid()
+            ? dayjs(task[fieldCodes.提醒時間]).format('YYYY/MM/DD HH:mm')
+            : '未設定'
+        }<br/>
+      `;
     };
 
     gantt.config.tooltip_timeout = 0;
@@ -550,18 +646,6 @@ const GanttChart = () => {
       }
     };
 
-    const customizeFirstScaleCell = () => {
-      if (selectedSetting.selectedDate){
-        const firstSmallScaleCell = document.querySelector('.gantt_scale_line:nth-child(2) .gantt_scale_cell');
-        if (firstSmallScaleCell) firstSmallScaleCell.innerText = '以前...';
-      }
-    };
-  
-    gantt.attachEvent('onGanttRender', customizeFirstScaleCell);
-    gantt.attachEvent('onDataRender', customizeFirstScaleCell);
-    gantt.attachEvent('onViewChange', customizeFirstScaleCell);
-    gantt.attachEvent('onAfterTaskUpdate', customizeFirstScaleCell);
-
     updateTodayLinePosition();
 
     // 設置點擊事件
@@ -599,7 +683,7 @@ const GanttChart = () => {
     <ConfigProvider locale={zhTW}>
       <div className="filters" style={{ marginBottom: '16px', marginLeft: '10px' }}>
         <Row gutter={[24, 24]} align="middle">
-          <Col xs={24} sm={12} md={8} lg={6} xl={3}>
+          <Col>
             <label style={{ marginBottom: '8px', fontWeight: 'bold' }}>標籤類別：</label>
             <Select
               value={selectedSetting.selectedCategory}
@@ -626,7 +710,7 @@ const GanttChart = () => {
             </Select>
           </Col>
 
-          <Col xs={24} sm={12} md={8} lg={6} xl={3}>
+          <Col>
             <label style={{ marginBottom: '8px', fontWeight: 'bold' }}>標籤：</label>
             <Select
               value={selectedSetting.selectedTag}
@@ -656,7 +740,7 @@ const GanttChart = () => {
             </Select>
           </Col>
 
-          <Col xs={24} sm={12} md={8} lg={6} xl={3}>
+          <Col>
             <label style={{ marginBottom: '8px', fontWeight: 'bold' }}>人員：</label>
             <Select
               value={selectedSetting.selectedUser}
@@ -681,7 +765,7 @@ const GanttChart = () => {
             </Select>
           </Col>
 
-          <Col xs={24} sm={12} md={8} lg={6} xl={3}>
+          <Col>
             <label style={{ marginBottom: '8px', fontWeight: 'bold' }}>發行日期：</label>
             <DatePicker
               value={dayjs(selectedSetting.selectedDate).isValid() ? dayjs(selectedSetting.selectedDate) : null}
@@ -697,7 +781,7 @@ const GanttChart = () => {
             />
           </Col>
 
-          <Col xs={24} sm={12} md={8} lg={6} xl={4}>
+          <Col>
             <label style={{ marginBottom: '12px', fontWeight: 'bold' }}>狀態：</label>
             <div className="gantt-status-badges">
               {state.map(([status, count]) => (
@@ -717,7 +801,7 @@ const GanttChart = () => {
             </div>
           </Col>
 
-          <Col xs={24} sm={12} md={8} lg={6} xl={3}>
+          <Col>
             <label style={{ marginBottom: '8px', fontWeight: 'bold' }}>時間線：</label>
             <Radio.Group
               className="view-toggle"
@@ -732,12 +816,12 @@ const GanttChart = () => {
             </Radio.Group>
           </Col>
 
-          <Col xs={24} sm={12} md={8} lg={6} xl={1}>
+          <Col>
             <div className="show-all">
               <Button type="primary" onClick={() =>  setSelectedSetting((prev) => ({ ...prev, selectedOpen: !prev.selectedOpen }))} className={`show-all-${selectedSetting.selectedOpen}`}>全展開</Button>
             </div>
           </Col>
-          <Col xs={24} sm={12} md={8} lg={6} xl={1}>
+          <Col>
             <Button
               type="primary"
               className={`gantt-today-${selectedSetting.selectedToday}`}

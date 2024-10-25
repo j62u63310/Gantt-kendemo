@@ -10,6 +10,10 @@
     display: none;
 }
 
+.tag .gantt_task_content {
+    background-color: #1DA1F2;
+    color: #FFFFFF;
+}
 
 .A-發行 .gantt_task_content {
     background-color: rgba(145, 187, 247, 1);
@@ -97,53 +101,12 @@
     color: white !important;
 }
 
-
-
-/**/
-.filters {
-    margin-left: 5px;
-}
-  
-.filters .ant-col {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    margin-top: 5px;
-}
-
-.gantt-state-true {
-    transform: translateY(-4px) scale(1.1);
-    box-shadow: 0 0 10px rgba(24, 144, 255, 0.6), 0 4px 12px rgba(0, 0, 0, 0.3);  /* 添加光暈效果 */
-    transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
-    background-color: #f0f5ff;
-    border-radius: 50%;  /* 圓形設計讓外觀更柔和 */
-}
-
-.gantt-state-false{
-    transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
-}
-
-.gantt-status-badges .ant-badge {
-    cursor: pointer !important;
-}
-
-.gantt-status-badges {
-    display: flex;
-    margin-top: 5px;
-    gap: 10px;
-}
-
 .gantt_task_bar {
     position: relative;
 }
 
 .gantt_task_content{
     z-index: 1 !important; 
-}
-
-.sc-eqXzvo.kttbQU{
-    position: relative;
-    z-index: 9999;
 }
   
 .gantt_timeline_past {
@@ -157,6 +120,61 @@
     background-color: #d3d3d33a; 
 }
 
+
+/**/
+.filters {
+    background: #ffffff;
+    padding: 24px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    margin-bottom: 24px;
+}
+
+.filters .ant-col {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    margin-top: 5px;
+}
+
+.ant-select,
+.ant-picker {
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+    transition: all 0.3s;
+}
+  
+.ant-select:hover,
+.ant-picker:hover {
+    border-color: #4b5563;
+}
+  
+.ant-select:focus,
+.ant-picker:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+.gantt-state-true {
+    transform: translateY(-4px) scale(1.1);
+    box-shadow: 0 0 10px rgba(24, 144, 255, 0.6), 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+    background-color: #f0f5ff;
+    border-radius: 50%;
+}
+
+.gantt-state-false{
+    transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+}
+
+.gantt-status-badges {
+    cursor: pointer !important;
+    display: flex;
+    margin-top: 5px;
+    gap: 10px;
+}
+
+/*自訂div*/
 .today-line {
     margin-top: 680px;
     position: absolute;
@@ -181,44 +199,111 @@
   background-color: transparent !important;
 }
 
-.A-發行 .gantt_task_progress {
-    background-color: rgba(109, 148, 196, 0.3) !important; /* 比原來的藍色更深一點 */
-    cursor: pointer !important;
-    z-index: 2 !important; 
+.custom-task-content {
     position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
 }
 
-.B-進行中 .gantt_task_progress {
-    background-color: rgba(91, 172, 82, 0.3) !important; /* 比原來的綠色更深一點 */
-    cursor: pointer !important;
-    z-index: 2 !important; 
-    position: relative;
+.custom-line-container {
+    position: absolute;
+    left: 0;
+    height: 4px;
+    width: 100%;
 }
 
-.C-驗收 .gantt_task_progress {
-    background-color: rgba(27, 161, 121, 0.3) !important; /* 比原來的青色更深一點 */
-    cursor: pointer !important;
-    z-index: 2 !important; 
-    position: relative;
+.custom-line {
+    position: absolute;
+    left: 0;
+    height: 4px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
 }
 
-.F-結案 .gantt_task_progress {
-    background-color: rgba(133, 138, 144, 0.3) !important; /* 比原來的灰色更深一點 */
-    cursor: pointer !important;
-    z-index: 2 !important; 
-    position: relative;
+.custom-line.dashed {
+    left: 100%;
+    background: linear-gradient(
+        to right,
+        currentColor 50%,
+        transparent 50%
+    ) repeat-x;
+    background-size: 8px 4px;
+    opacity: 0.7;
 }
 
-.P-暫緩 .gantt_task_progress {
-    background-color: rgba(191, 85, 85, 0.3) !important; /* 比原來的紅色更深一點 */
-    cursor: pointer !important;
-    z-index: 2 !important; 
-    position: relative;
+.custom-triangle {
+    position: absolute;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-left: 9px solid transparent;
+    border-right: 9px solid transparent;
+    border-top: 9px solid rgba(0, 0, 0, 1);
 }
 
-.R-返工 .gantt_task_progress {
-    background-color: rgba(204, 132, 0, 0.8) !important; /* 比原來的橙色更深一點 */
-    cursor: pointer !important;
-    z-index: 2 !important; 
-    position: relative;
+.custom-triangle::after {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: -7px;
+    width: 0;
+    height: 0;
+    border-left: 7px solid transparent;
+    border-right: 7px solid transparent;
+    border-top: 7px solid #ff6b6b;
+}
+
+.custom-circle {
+    width: 9px;
+    height: 9px;
+    border: 1px solid rgba(0, 0, 0, 0.5);
+    border-radius: 50%;
+    position: absolute;
+    transform: translate(-50%, -50%);
+}
+
+.task-title {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    text-align: center;
+    z-index: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0 5px;
+    font-weight: 600;
+    color: rgba(0, 0, 0, 0.9);
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+    border-radius: 0 0 3px 3px;
+}
+
+.gantt_ver_scroll {
+    background-color: #f1f1f1;
+    width: 12px !important; /* 调整滚动条的宽度 */
+}
+
+.gantt_ver_scroll .gantt_scroll_inner {
+    background-color: #888;
+    border-radius: 6px;
+}
+
+.gantt_ver_scroll .gantt_scroll_inner:hover {
+    background-color: #555;
+}
+
+/* 水平滚动条 */
+.gantt_hor_scroll {
+    background-color: #f1f1f1;
+    height: 12px !important; /* 调整滚动条的高度 */
+}
+
+.gantt_hor_scroll .gantt_scroll_inner {
+    background-color: #888;
+    border-radius: 6px;
+}
+
+.gantt_hor_scroll .gantt_scroll_inner:hover {
+    background-color: #555;
 }

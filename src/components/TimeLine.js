@@ -277,7 +277,6 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
     const convertUrlsToLinks = (text) => {
       const urlRegex = /(https?:\/\/[^\s<>\u4e00-\u9fff]+)/g;
       return text.replace(urlRegex, (url) => {
-        console.log(url);
         return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
       });
     };
