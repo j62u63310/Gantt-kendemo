@@ -307,3 +307,7 @@
 .gantt_hor_scroll .gantt_scroll_inner:hover {
     background-color: #555;
 }
+
+.gantt_task_content{
+    overflow: visible !important;
+}

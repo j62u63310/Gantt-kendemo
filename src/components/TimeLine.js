@@ -2,8 +2,8 @@ import React, { useCallback, useState, useEffect,  useMemo } from 'react';
 import { useDispatch } from 'react-redux';
 import { Typography, Button, Tag, message } from 'antd';
 import { CalendarOutlined, FlagOutlined, UserOutlined } from '@ant-design/icons';
-import { format, addDays } from 'date-fns';
-import { zhTW } from 'date-fns/locale';
+import { format, addDays, subDays  } from 'date-fns';
+import { fi, zhTW } from 'date-fns/locale';
 import Swal from 'sweetalert2';
 
 import DOMPurify from 'dompurify';
@@ -65,22 +65,43 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
   }, []);
 
   //更新開始時間
-  const setStartTime = useCallback(async (currentTime, id, showDate) => {
+  const setStartTime = useCallback(async (currentTime, id, showDate ,WFO = 0 ,WFH = 0, workDescription, record = {}) => {
     const showMessage = showDate == fieldCodes.提醒時間 ? '作業規劃/提醒時間' : '開始時間' ;
     try {
       const now = new Date();
       now.setHours(now.getHours() + 8);
       const formattedTime = new Date(currentTime.getTime() + 8 * 60 * 60 * 1000).toISOString().replace('Z', '+08:00');
       const updateData = { [showDate]: { value: formattedTime }, 更新時間: { value: now.toISOString().replace('Z', '+08:00') } };
-      
-      dispatch({ type: 'UPDATE_行事曆_ITEM', payload: { id, data: updateData } });
 
+      if(showDate == fieldCodes.開始時間){
+        const newEntry = {
+          value: {
+            [fieldCodes.作業時間]: { value: formattedTime },
+            [fieldCodes.作業帳]: { value: [{ code: kintone.getLoginUser().code }] },
+            [fieldCodes.作業工時說明]: { value: workDescription }, 
+            [fieldCodes.工數_WFO]: { value: WFO },
+            [fieldCodes.工數_WFH]: { value: WFH },
+          }
+        };
+        
+        if (record[fieldCodes.作業工數明細表格].length === 1 &&
+            !record[fieldCodes.作業工數明細表格][0].value[fieldCodes.作業時間].value) {
+          record[fieldCodes.作業工數明細表格] = [newEntry];
+        } else {
+          record[fieldCodes.作業工數明細表格].push(newEntry);
+        }
+        if(!record[fieldCodes.開始時間_初始]) updateData[fieldCodes.開始時間_初始] = { value: formattedTime }
+        updateData[fieldCodes.工數合計] = { value: Number(WFO) + Number(WFH) + Number(record[fieldCodes.工數合計])}
+        updateData[fieldCodes.作業工數明細表格] = { value: record[fieldCodes.作業工數明細表格]}
+      }
+    
+
+      dispatch({ type: 'UPDATE_行事曆_ITEM', payload: { id, data: updateData } });
+      delete updateData['更新時間'];
       await kintone.api(kintone.api.url('/k/v1/record', true), 'PUT', { 
         app: kintone.app.getId(), 
-        id: id, 
-        record: {
-          [showDate]: { value: formattedTime }
-        }
+        id, 
+        record: updateData
       });
 
       message.success(`${showMessage}已記錄：${formatDateTime(currentTime)}`);
@@ -90,7 +111,7 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
     }finally{
       setIsModalShow(false);
     }
-  }, [dispatch, formatDateTime]);
+  }, [formatDateTime]);
 
 /* ---------------------------------------------------------------*/
 /*                     按鈕或點擊事件處理                           */
@@ -113,7 +134,7 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
     };
   
     const { isConfirmed, value } = await Swal.fire({
-      title: '請選擇開始作業的時間',
+      title: '請選擇作業規劃/提醒時間的時間',
       icon: 'info',
       html: `
         <div class="radio-group-container">
@@ -160,8 +181,8 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
   
       // 顯示確認訊息
       await Swal.fire({
-        title: '已設置開始時間',
-        text: `開始時間已設置為 ${formatDateWithWeekday(selectedDate)}`,
+        title: '已設置作業規劃/提醒時間',
+        text: `作業規劃/提醒時間已設置為 ${formatDateWithWeekday(selectedDate)}`,
         icon: 'success',
         confirmButtonText: '確定',
         customClass: {
@@ -174,25 +195,92 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
     }
   }, [setStartTime]);
 
-  const handleStartWorkNow = useCallback(async (id)=>{
-    setStartTime(new Date(), id, fieldCodes.開始時間);
-
+  const handleStartWorkNow = useCallback(async (record, id) => {
+    const now = new Date();
+    const dayAfterTomorrow = subDays(now, 1);
+  
     const formatDateWithWeekday = (date) => {
-      return format(date, 'yyyy/MM/dd (EEEE)', { locale: zhTW });
+      return format(date, 'yyyy/MM/dd HH:mm (EEEE)', { locale: zhTW });
     };
-    Swal.fire({
-      title: '已設置開始時間',
-      text: `開始時間已設置為 ${formatDateWithWeekday(new Date())}`,
-      icon: 'success',
+  
+    const { isConfirmed, value } = await Swal.fire({
+      title: '請選擇開始時間的時間',
+      icon: 'info',
+      html: `
+        <div class="radio-group-container">
+          <div class="custom-radio-group">
+            <label><input type="radio" name="dateChoice" value="today" checked> 當前時間 ${formatDateWithWeekday(now)}</label>
+            <label><input type="radio" name="dateChoice" value="custom"> 其他時間
+              <input type="date" id="customDate" value="${format(dayAfterTomorrow, 'yyyy-MM-dd')}" max="${format(now, 'yyyy-MM-dd')}">
+            </label>
+            <label class="input-with-unit">
+              WFO(公司) <input type="number" id="WFO" name="WFO" min="0" step="0.1" value="0.0">
+            </label>
+            <label class="input-with-unit">
+              WFH(自宅) <input type="number" id="WFH" name="WFH" min="0" step="0.1" value="0.0">
+            </label>
+            <label>
+              作業工時說明：<input type="text" id="workDescription" placeholder="輸入說明">
+            </label>
+            <label>
+              歷史工數合計：${record[fieldCodes.工數合計] || 0} 人時
+            </label>
+          </div>
+        </div>
+      `,
+      focusConfirm: false,
+      showCancelButton: true,
       confirmButtonText: '確定',
+      cancelButtonText: '取消',
       customClass: {
         popup: 'custom-popup',
         title: 'custom-title',
-        content: 'custom-content',
-        confirmButton: 'custom-confirm-button'
+        actions: 'custom-actions',
+        confirmButton: 'custom-confirm-button',
+        cancelButton: 'custom-cancel-button'
+      },
+      preConfirm: () => {
+        const choice = document.querySelector('input[name="dateChoice"]:checked').value;
+        const customDateInput = document.getElementById('customDate');
+        const wfoValue = document.getElementById('WFO').value;
+        const wfhValue = document.getElementById('WFH').value;
+        const workDescription = document.getElementById('workDescription').value;
+  
+        let selectedDate;
+        switch (choice) {
+          case 'today':
+            selectedDate = now;
+            break;
+          case 'custom':
+            selectedDate = new Date(customDateInput.value);
+            selectedDate.setHours(0, 0, 0, 0);
+            break;
+        }
+        // 返回選擇的日期和 WFO、WFH 值，以及作業工時說明
+        return { selectedDate, wfoValue, wfhValue, workDescription };
       }
     });
-  }, [setStartTime])
+  
+    if (isConfirmed && value) {
+      const { selectedDate, wfoValue, wfhValue, workDescription } = value;
+  
+      await setStartTime(selectedDate, id, fieldCodes.開始時間, wfoValue || 0, wfhValue || 0, workDescription, record);
+  
+      // 顯示確認訊息，包括 WFO、WFH 和作業工時說明
+      await Swal.fire({
+        title: '已設置開始時間',
+        html: `開始時間已設置為 ${formatDateWithWeekday(selectedDate)}<br/>WFO: ${wfoValue || 0} 人時<br/>WFH: ${wfhValue || 0} 人時<br/>說明: ${workDescription || '無'}`,
+        icon: 'success',
+        confirmButtonText: '確定',
+        customClass: {
+          popup: 'custom-popup',
+          title: 'custom-title',
+          content: 'custom-content',
+          confirmButton: 'custom-confirm-button'
+        }
+      });
+    }
+  }, [setStartTime]);
 
   //按下變更狀態
   const handleChangeState = useCallback(async (id, state) => {
@@ -378,7 +466,7 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
                 })}
               </div>
               <div className="center-container">
-                <Button type="primary" className="now-start-button" style={{backgroundColor: "#EF6B6B", width: "200px", }} onClick={() => handleStartWorkNow(record.$id)}>開始作業</Button>
+                <Button type="primary" className="now-start-button" style={{backgroundColor: "#EF6B6B", width: "200px", }} onClick={() => handleStartWorkNow(record, record.$id)}>開始作業</Button>
               </div>
               <Button type="primary" className="view-button" style={{backgroundColor: "#52c41a"}} onClick={() => handleEdit(record.$id, false)}>查看資料</Button>
               <Button type="primary" className="edit-button" style={{backgroundColor: "#1890ff"}} onClick={() => handleEdit(record.$id, true)}>編輯資料</Button>
