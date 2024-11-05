@@ -65,7 +65,7 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
   }, []);
 
   //更新開始時間
-  const setStartTime = useCallback(async (currentTime, id, showDate ,WFO = 0 ,WFH = 0, workDescription, record = {}) => {
+  const setStartTime = useCallback(async (currentTime, id, showDate, record = {} ,WFO = 0 ,WFH = 0, workDescription) => {
     const showMessage = showDate == fieldCodes.提醒時間 ? '作業規劃/提醒時間' : '開始時間' ;
     try {
       const now = new Date();
@@ -73,27 +73,26 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
       const formattedTime = new Date(currentTime.getTime() + 8 * 60 * 60 * 1000).toISOString().replace('Z', '+08:00');
       const updateData = { [showDate]: { value: formattedTime }, 更新時間: { value: now.toISOString().replace('Z', '+08:00') } };
 
-      if(showDate == fieldCodes.開始時間){
-        const newEntry = {
-          value: {
-            [fieldCodes.作業時間]: { value: formattedTime },
-            [fieldCodes.作業帳]: { value: [{ code: kintone.getLoginUser().code }] },
-            [fieldCodes.作業工時說明]: { value: workDescription }, 
-            [fieldCodes.工數_WFO]: { value: WFO },
-            [fieldCodes.工數_WFH]: { value: WFH },
-          }
-        };
-        
-        if (record[fieldCodes.作業工數明細表格].length === 1 &&
-            !record[fieldCodes.作業工數明細表格][0].value[fieldCodes.作業時間].value) {
-          record[fieldCodes.作業工數明細表格] = [newEntry];
-        } else {
-          record[fieldCodes.作業工數明細表格].push(newEntry);
+      const newEntry = {
+        value: {
+          [fieldCodes.作業時間]: { value: formattedTime },
+          [fieldCodes.作業帳]: { value: [{ code: kintone.getLoginUser().code }] },
+          [fieldCodes.作業工時說明]: { value: workDescription }, 
+          [fieldCodes.工數_WFO]: { value: WFO },
+          [fieldCodes.工數_WFH]: { value: WFH },
         }
-        if(!record[fieldCodes.開始時間_初始]) updateData[fieldCodes.開始時間_初始] = { value: formattedTime }
-        updateData[fieldCodes.工數合計] = { value: Number(WFO) + Number(WFH) + Number(record[fieldCodes.工數合計])}
-        updateData[fieldCodes.作業工數明細表格] = { value: record[fieldCodes.作業工數明細表格]}
+      };
+      
+      if (record[fieldCodes.作業工數明細表格].length === 1 &&
+          !record[fieldCodes.作業工數明細表格][0].value[fieldCodes.作業時間].value) {
+        record[fieldCodes.作業工數明細表格] = [newEntry];
+      } else {
+        record[fieldCodes.作業工數明細表格].push(newEntry);
       }
+      if(!record[fieldCodes.開始時間_初始]) updateData[fieldCodes.開始時間_初始] = { value: formattedTime }
+      updateData[fieldCodes.工數合計] = { value: Number(WFO) + Number(WFH) + Number(record[fieldCodes.工數合計])}
+      updateData[fieldCodes.作業工數明細表格] = { value: record[fieldCodes.作業工數明細表格]}
+      
     
 
       dispatch({ type: 'UPDATE_行事曆_ITEM', payload: { id, data: updateData } });
@@ -123,7 +122,7 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
   }, []);
 
   //按下開始作業
-  const handleStartWork = useCallback(async (id) => {
+  const handleStartWork = useCallback(async (record, id) => {
     const now = new Date();
     const tomorrow = addDays(now, 1);
     const dayAfterTomorrow = addDays(now, 2);
@@ -177,7 +176,7 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
   
     if (isConfirmed && value) {
       selectedDate.setHours(0, 0, 0, 0);
-      await setStartTime(selectedDate, id, fieldCodes.提醒時間);
+      await setStartTime(selectedDate, id, fieldCodes.提醒時間, record);
   
       // 顯示確認訊息
       await Swal.fire({
@@ -264,7 +263,7 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
     if (isConfirmed && value) {
       const { selectedDate, wfoValue, wfhValue, workDescription } = value;
   
-      await setStartTime(selectedDate, id, fieldCodes.開始時間, wfoValue || 0, wfhValue || 0, workDescription, record);
+      await setStartTime(selectedDate, id, fieldCodes.開始時間, record, wfoValue || 0, wfhValue || 0, workDescription);
   
       // 顯示確認訊息，包括 WFO、WFH 和作業工時說明
       await Swal.fire({
@@ -491,7 +490,7 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
               </div>
               <Button type="primary" className="view-button" style={{backgroundColor: "#52c41a"}} onClick={() => handleEdit(record.$id, false)}>查看資料</Button>
               <Button type="primary" className="edit-button" style={{backgroundColor: "#1890ff"}} onClick={() => handleEdit(record.$id, true)}>編輯資料</Button>
-              <Button type="primary" className="start-button"  style={{backgroundColor: "#faad14"}} onClick={() => handleStartWork(record.$id)}>作業規劃/提醒時間</Button>
+              <Button type="primary" className="start-button"  style={{backgroundColor: "#faad14"}} onClick={() => handleStartWork(record, record.$id)}>作業規劃/提醒時間</Button>
             </div>
           </div>
         </div>

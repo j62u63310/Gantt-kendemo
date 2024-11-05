@@ -106,13 +106,16 @@ const GanttChart = () => {
         if (dayjs(record[fieldCodes.發行日].value).isBefore(selectedSetting.selectedDate, 'day')) {
           if (!record[fieldCodes.變更發行日]) record[fieldCodes.變更發行日] = { value: '' };
           if (!record[fieldCodes.變更到期日]) record[fieldCodes.變更到期日] = { value: '' };
-          const 發行日 = dayjs(selectedSetting.selectedDate).subtract(1, selectedSetting.selectedView).startOf(selectedSetting.selectedView).add(selectedSetting.selectedView == 'week' ? 1 : 0, 'day').format('YYYY-MM-DD');
+          const 發行日 = dayjs(selectedSetting.selectedDate)
+                        .subtract(1, selectedSetting.selectedView)
+                        .startOf(selectedSetting.selectedView)
+                        .add(selectedSetting.selectedView == 'week' ? 1 : 0, 'day')
+                        .format('YYYY-MM-DD');
           const 到期日 = dayjs(selectedSetting.selectedDate)
-              .subtract(selectedSetting.selectedView == 'day' ? 0 : 1, selectedSetting.selectedView)
-              .endOf(selectedSetting.selectedView)
-              .add(selectedSetting.selectedView == 'week' ? 2 : 0, 'day')
-              .endOf('day')
-              .format('YYYY-MM-DD HH:mm:ss');
+                        .subtract(selectedSetting.selectedView == 'day' ? 0 : 1, selectedSetting.selectedView)
+                        .endOf(selectedSetting.selectedView)
+                        .add(selectedSetting.selectedView == 'week' ? 2 : 0, 'day')
+                        .format('YYYY-MM-DD');
           record[fieldCodes.變更發行日].value = 發行日;
           record[fieldCodes.變更到期日].value = 到期日;
         }
