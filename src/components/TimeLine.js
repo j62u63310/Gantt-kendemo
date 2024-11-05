@@ -75,8 +75,11 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
 
       const newEntry = {
         value: {
+          [fieldCodes.事件時間]: { value: now.toISOString().replace('Z', '+08:00') },
+          [fieldCodes.事件類型]: { value: showMessage },
           [fieldCodes.作業時間]: { value: formattedTime },
           [fieldCodes.作業帳]: { value: [{ code: kintone.getLoginUser().code }] },
+          [fieldCodes.作業狀態]: { value: record[fieldCodes.作業狀態_完成度] },
           [fieldCodes.作業工時說明]: { value: workDescription }, 
           [fieldCodes.工數_WFO]: { value: WFO },
           [fieldCodes.工數_WFH]: { value: WFH },
@@ -298,6 +301,8 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
         const updateData = { [fieldCodes.作業狀態_完成度]: { value: state } };
         const newEntry = {
           value: {
+            [fieldCodes.事件時間]: { value: now.toISOString().replace('Z', '+08:00') },
+            [fieldCodes.事件類型]: { value: '狀態更新'},
             [fieldCodes.作業時間]: { value: now.toISOString().replace('Z', '+08:00') },
             [fieldCodes.作業帳]: { value: [{ code: kintone.getLoginUser().code }] },
             [fieldCodes.作業狀態]: { value: state },
