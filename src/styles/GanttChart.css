@@ -311,3 +311,12 @@
 .gantt_task_content{
     overflow: visible !important;
 }
+
+.gantt_bar_task {
+    margin-top: 2px;
+    height: 30px !important;
+}
+
+.task-title{
+    margin-top: 2px !important;
+}

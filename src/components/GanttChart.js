@@ -10,9 +10,10 @@ import TimeLine from './TimeLine';
 import "../styles/GanttChart.css"
 
 import dayjs from 'dayjs';
+import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
 import 'dayjs/locale/zh-tw';
 import zhTW from "antd/lib/locale/zh_TW";
-import { fi } from 'date-fns/locale';
+dayjs.extend(isSameOrBefore);
 dayjs.locale('zh-tw');
 
 const { Option } = Select;
@@ -42,11 +43,6 @@ const GanttChart = () => {
   const [isState, setIsState] = useState(status.filter(item => item !== 'F-結案' && item !== 'P-暫緩'));
   const [isModalShow, setIsModalShow] = useState(false);
   const [currentTask, setCurrentTask] = useState(null);
-
-  useEffect(() => {
-    const 登入 = kintone.getLoginUser();
-    setSelectedSetting((prev) => ({ ...prev, selectedUser: 登入.code }));
-  }, []);
 
   useEffect(() => {
     document.cookie = `ken_Setting=${JSON.stringify(selectedSetting)}; path=/k/${kintone.app.getId()}/; expires=Fri, 31 Dec 9999 23:59:59 GMT`;
@@ -111,7 +107,12 @@ const GanttChart = () => {
           if (!record[fieldCodes.變更發行日]) record[fieldCodes.變更發行日] = { value: '' };
           if (!record[fieldCodes.變更到期日]) record[fieldCodes.變更到期日] = { value: '' };
           const 發行日 = dayjs(selectedSetting.selectedDate).subtract(1, selectedSetting.selectedView).startOf(selectedSetting.selectedView).add(selectedSetting.selectedView == 'week' ? 1 : 0, 'day').format('YYYY-MM-DD');
-          const 到期日 = dayjs(selectedSetting.selectedDate).subtract(selectedSetting.selectedView == 'day' ? 0 : 1, selectedSetting.selectedView).endOf(selectedSetting.selectedView).add(selectedSetting.selectedView == 'week' ? 2 : 0, 'day').format('YYYY-MM-DD');
+          const 到期日 = dayjs(selectedSetting.selectedDate)
+              .subtract(selectedSetting.selectedView == 'day' ? 0 : 1, selectedSetting.selectedView)
+              .endOf(selectedSetting.selectedView)
+              .add(selectedSetting.selectedView == 'week' ? 2 : 0, 'day')
+              .endOf('day')
+              .format('YYYY-MM-DD HH:mm:ss');
           record[fieldCodes.變更發行日].value = 發行日;
           record[fieldCodes.變更到期日].value = 到期日;
         }
@@ -188,7 +189,9 @@ const GanttChart = () => {
     for (const record of filterData) {
 
       const 發行日 = dayjs(record[fieldCodes.發行日].value).format('YYYY-MM-DD HH:mm');
-      const 到期日 = dayjs(record[fieldCodes.到期日].value).format('YYYY-MM-DD HH:mm') || dayjs(record[fieldCodes.發行日].value).add(1, 'day').format('YYYY-MM-DD HH:mm');
+      const 到期日 = dayjs(record[fieldCodes.到期日].value).isSameOrBefore(dayjs(record[fieldCodes.發行日].value), 'day')
+        ? dayjs(record[fieldCodes.發行日].value).endOf('day').format('YYYY-MM-DD HH:mm:ss')
+        : dayjs(record[fieldCodes.到期日].value).endOf('day').format('YYYY-MM-DD HH:mm') || dayjs(record[fieldCodes.發行日].value).add(1, 'day').format('YYYY-MM-DD HH:mm');
 
       const 變更發行日 = record[fieldCodes.變更發行日]?.value
         ? dayjs(record[fieldCodes.變更發行日].value).format('YYYY-MM-DD HH:mm')
@@ -308,6 +311,8 @@ const GanttChart = () => {
     }));
 
     gantt.config.subscales[0].step = 1;
+
+    gantt.config.row_height = 40;
 
 
     gantt.config.smart_rendering = false;
@@ -534,7 +539,7 @@ const GanttChart = () => {
             ? dayjs(task[fieldCodes.更新時間]).format('YYYY/MM/DD HH:mm')
             : '未設定'
         }<br/>
-        <b style="color: #ff6b6b;">提醒時間: </b> ${
+        <b style="color: #ff6b6b;">作業規劃/提醒時間: </b> ${
           dayjs(task[fieldCodes.提醒時間]).isValid()
             ? dayjs(task[fieldCodes.提醒時間]).format('YYYY/MM/DD HH:mm')
             : '未設定'
@@ -749,6 +754,7 @@ const GanttChart = () => {
                 setSelectedSetting((prev) => ({ ...prev, selectedCategory: value || '(全部)', selectedTag: '(全部)', selectedToday: false }));
               }}
               style={{ width: '200px' }}
+              listHeight={500}
               placeholder="選擇標籤類別"
               allowClear
               showSearch
@@ -776,6 +782,7 @@ const GanttChart = () => {
                 setSelectedSetting((prev) => ({ ...prev, selectedTag: value || '(全部)' }));
               }}
               style={{ width: '200px' }}
+              listHeight={500}
               placeholder="選擇標籤"
               allowClear
               showSearch
@@ -806,6 +813,7 @@ const GanttChart = () => {
                 setSelectedSetting((prev) => ({ ...prev, selectedUser: value || '所有人員(ALL)' }));
               }}
               style={{ width: '200px' }}
+              listHeight={500}
               placeholder="選擇人員"
               allowClear
               showSearch
@@ -896,7 +904,7 @@ const GanttChart = () => {
           </Col>
         </Row>
       </div>
-      <div ref={ganttContainer} style={{ height: '600px', width: '99%', marginLeft: '10px'}} />
+      <div ref={ganttContainer} style={{ height: '600px', width: '99%', marginLeft: '10px', marginBottom: '20px'}} />
       <Modal
         open={isModalShow}
         onCancel={() => setIsModalShow(false)}

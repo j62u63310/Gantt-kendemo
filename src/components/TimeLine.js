@@ -283,7 +283,7 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
   }, [setStartTime]);
 
   //按下變更狀態
-  const handleChangeState = useCallback(async (id, state) => {
+  const handleChangeState = useCallback(async (record, id, state) => {
     const { isConfirmed } = await Swal.fire({
       title: `是否要更改狀態為 ${state} ？`,
       icon: 'question',
@@ -294,7 +294,28 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
 
     if (isConfirmed) {
       try {
+        const now = new Date();
+        now.setHours(now.getHours() + 8);
         const updateData = { [fieldCodes.作業狀態_完成度]: { value: state } };
+        const newEntry = {
+          value: {
+            [fieldCodes.作業時間]: { value: now.toISOString().replace('Z', '+08:00') },
+            [fieldCodes.作業帳]: { value: [{ code: kintone.getLoginUser().code }] },
+            [fieldCodes.作業狀態]: { value: state },
+            [fieldCodes.作業工時說明]: { value: '' }, 
+            [fieldCodes.工數_WFO]: { value: 0 },
+            [fieldCodes.工數_WFH]: { value: 0 },
+          }
+        };
+        if (record[fieldCodes.作業工數明細表格].length === 1 && !record[fieldCodes.作業工數明細表格][0].value[fieldCodes.作業時間].value) {
+          record[fieldCodes.作業工數明細表格] = [newEntry];
+        } else {
+          record[fieldCodes.作業工數明細表格].push(newEntry);
+        }
+        if(!record[fieldCodes.開始時間_初始]) updateData[fieldCodes.開始時間_初始] = { value: now.toISOString().replace('Z', '+08:00') }
+        updateData[fieldCodes.作業工數明細表格] = { value: record[fieldCodes.作業工數明細表格]}
+
+
         dispatch({ type: 'UPDATE_行事曆_ITEM', payload: { id, data: updateData } });
 
         await kintone.api(kintone.api.url('/k/v1/record', true), 'PUT', { 
@@ -439,7 +460,7 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
             <div className="timeline-allDate">
               {dateOrder.filter(recordDate => fieldCodes.發行日 !== recordDate).map((recordDate, index) => (
                 <Tag key={index} className="timeline-tag timeline-otherDate">
-                  <CalendarOutlined /> {recordDate} {formatDateTime(record[recordDate])}
+                  <CalendarOutlined /> {recordDate == '提醒時間' ? '作業規劃/提醒時間' : recordDate} {formatDateTime(record[recordDate])}
                 </Tag>
               ))}
             </div>
@@ -457,7 +478,7 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
                       type="primary"
                       key={btnIndex}
                       className={`state-button state-button-${config.nextStatus}`}
-                      onClick={() => handleChangeState(record.$id, config.nextStatus)}
+                      onClick={() => handleChangeState(record, record.$id, config.nextStatus)}
                       style={buttonStyle(config.nextStatus)}
                     >
                       {config.nextStatus}
