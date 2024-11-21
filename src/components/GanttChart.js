@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react'
 import 'dhtmlx-gantt/codebase/dhtmlxgantt.css';
 import { gantt } from 'dhtmlx-gantt';
 import { useSelector } from 'react-redux';
-import { Button, Select, DatePicker, Badge, Tooltip, ConfigProvider, Modal, Row, Col, Checkbox, Radio } from 'antd';
+import { Button, Select, DatePicker, Badge, Tooltip, ConfigProvider, Modal, Row, Col, Checkbox, Radio, Tag } from 'antd';
 import { fieldCodes, getStatusColor, 本地化 } from '../config/AppConfig';
 import { UserOutlined, BorderlessTableOutlined, CalendarOutlined, CloseOutlined  } from '@ant-design/icons';
 import { getCookie } from '../service/process';
@@ -24,6 +24,7 @@ const GanttChart = () => {
   const showSetting = JSON.parse(getCookie("ken_Setting")) || {
       selectedCategory: '(全部)',
       selectedTag: '(全部)',
+      selectedTag2: '(全部)',
       selectedUser: kintone.getLoginUser().code,
       selectedDate: null,
       selectedView: 'month',
@@ -31,6 +32,9 @@ const GanttChart = () => {
       selectedToday: false,
       selectedShowDate: fieldCodes.開始時間,
   };
+
+  showSetting.selectedUser = kintone.getLoginUser().code;
+  showSetting.selectedDate = dayjs().subtract(7, 'day').toISOString();
   
   const ganttContainer = useRef(null);
   const 標籤資料 = useSelector((state) => state.標籤);
@@ -138,6 +142,13 @@ const GanttChart = () => {
       );
     }
 
+    if (selectedSetting.selectedTag2 !== '(全部)' && selectedSetting.selectedTag2){
+      filteredData = filteredData.filter(record =>{
+        const 所有標籤 = record[fieldCodes.標籤].value.split(',');
+        return 所有標籤.includes(selectedSetting.selectedTag2);
+      });
+    }
+
     filteredData = filteredData.filter(record =>
       isState.includes(record[fieldCodes.作業狀態_完成度].value)
     );
@@ -158,6 +169,18 @@ const GanttChart = () => {
 
     return filteredData;
   }, [行事曆資料, selectedSetting, isState, filteredCategories]);
+  
+  const uniqueFilterTags = useMemo(() =>{
+    const result = [];
+    for(const record of 行事曆資料){
+      const 所有標籤 = record[fieldCodes.標籤].value.split(',');
+      if(!所有標籤.includes(selectedSetting.selectedTag) && selectedSetting.selectedTag != '(全部)') continue;
+      for(const 標籤 of 所有標籤){
+        if(!result.includes(標籤)) result.push(標籤);
+      }
+    }
+    return result;
+  }, [行事曆資料, selectedSetting]);
 
   const tasks = useMemo(() => {
     const recordData = [];
@@ -782,7 +805,7 @@ const GanttChart = () => {
             <Select
               value={selectedSetting.selectedTag}
               onChange={(value) => {
-                setSelectedSetting((prev) => ({ ...prev, selectedTag: value || '(全部)' }));
+                setSelectedSetting((prev) => ({ ...prev, selectedTag: value || '(全部)', selectedTag2: '(全部)' }));
               }}
               style={{ width: '200px' }}
               listHeight={500}
@@ -803,6 +826,34 @@ const GanttChart = () => {
                   value={tag[fieldCodes.標籤].value}
                 >
                   {tag[fieldCodes.標籤].value}
+                </Option>
+              ))}
+            </Select>
+          </Col>
+
+          <Col>
+            <label style={{ marginBottom: '8px', fontWeight: 'bold' }}>標籤2：</label>
+            <Select
+              value={selectedSetting.selectedTag2}
+              onChange={(value) => {
+                setSelectedSetting((prev) => ({ ...prev, selectedTag2: value || '(全部)' }));
+              }}
+              style={{ width: '200px' }}
+              listHeight={500}
+              placeholder="選擇標籤"
+              allowClear
+              showSearch
+              suffixIcon={<BorderlessTableOutlined />}
+              filterOption={(input, option) =>
+                option.children.toLowerCase().includes(input.toLowerCase())
+              }
+            >
+              <Option key="(全部)" value="(全部)">
+                (全部)
+              </Option>
+              {uniqueFilterTags.map((tag) => (
+                <Option key={tag} value={tag}>
+                  {tag}
                 </Option>
               ))}
             </Select>
