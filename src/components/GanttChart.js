@@ -20,9 +20,17 @@ const { Option } = Select;
 
 const status = ['A-發行', 'B-進行中', 'C-驗收( V&V )', 'F-結案', 'P-暫緩', 'R-返工'];
 
+
+
 const GanttChart = () => {
+
+  const ganttContainer = useRef(null);
+  const 標籤資料 = useSelector((state) => state.標籤);
+  const 行事曆資料 = useSelector((state) => state.行事曆);
+  const 登入帳號 = useSelector((state) => state.登入帳號);
+
   const showSetting = JSON.parse(getCookie("ken_Setting")) || {
-      selectedCategory: '(全部)',
+      selectedCategory: (標籤資料.length > 0 && 標籤資料[0][fieldCodes.標籤類別]?.value) || '其他',
       selectedTag: '(全部)',
       selectedTag2: '(全部)',
       selectedUser: kintone.getLoginUser().code,
@@ -33,13 +41,9 @@ const GanttChart = () => {
       selectedShowDate: fieldCodes.開始時間,
   };
 
+  if(showSetting.selectedCategory == '(全部)') showSetting.selectedCategory = (標籤資料.length > 0 && 標籤資料[0][fieldCodes.標籤類別]?.value) || '其他';
   showSetting.selectedUser = kintone.getLoginUser().code;
   showSetting.selectedDate = dayjs().subtract(7, 'day').toISOString();
-  
-  const ganttContainer = useRef(null);
-  const 標籤資料 = useSelector((state) => state.標籤);
-  const 行事曆資料 = useSelector((state) => state.行事曆);
-  const 登入帳號 = useSelector((state) => state.登入帳號);
 
   const [selectedSetting, setSelectedSetting] = useState(showSetting);
 
@@ -109,18 +113,23 @@ const GanttChart = () => {
       filteredData = filteredData.map(record => {
         if (dayjs(record[fieldCodes.發行日].value).isBefore(selectedSetting.selectedDate, 'day')) {
           if (!record[fieldCodes.變更發行日]) record[fieldCodes.變更發行日] = { value: '' };
-          if (!record[fieldCodes.變更到期日]) record[fieldCodes.變更到期日] = { value: '' };
+          
           const 發行日 = dayjs(selectedSetting.selectedDate)
                         .subtract(1, selectedSetting.selectedView)
                         .startOf(selectedSetting.selectedView)
                         .add(selectedSetting.selectedView == 'week' ? 1 : 0, 'day')
                         .format('YYYY-MM-DD');
-          const 到期日 = dayjs(selectedSetting.selectedDate)
-                        .subtract(selectedSetting.selectedView == 'day' ? 0 : 1, selectedSetting.selectedView)
-                        .endOf(selectedSetting.selectedView)
-                        .add(selectedSetting.selectedView == 'week' ? 2 : 0, 'day')
-                        .format('YYYY-MM-DD');
+
           record[fieldCodes.變更發行日].value = 發行日;
+         
+        }
+        if (dayjs(record[fieldCodes.到期日].value).isBefore(selectedSetting.selectedDate, 'day')){
+          if (!record[fieldCodes.變更到期日]) record[fieldCodes.變更到期日] = { value: '' };
+          const 到期日 = dayjs(selectedSetting.selectedDate)
+            .subtract(selectedSetting.selectedView == 'day' ? 0 : 1, selectedSetting.selectedView)
+            .endOf(selectedSetting.selectedView)
+            .add(selectedSetting.selectedView == 'week' ? 2 : 0, 'day')
+            .format('YYYY-MM-DD');
           record[fieldCodes.變更到期日].value = 到期日;
         }
         
@@ -777,7 +786,7 @@ const GanttChart = () => {
             <Select
               value={selectedSetting.selectedCategory}
               onChange={(value) => {
-                setSelectedSetting((prev) => ({ ...prev, selectedCategory: value || '(全部)', selectedTag: '(全部)', selectedToday: false }));
+                setSelectedSetting((prev) => ({ ...prev, selectedCategory: value, selectedTag: '(全部)', selectedToday: false }));
               }}
               style={{ width: '200px' }}
               listHeight={500}
@@ -789,9 +798,6 @@ const GanttChart = () => {
                 option.children.toLowerCase().includes(input.toLowerCase())
               }
             >
-              <Option key="(全部)" value="(全部)">
-                (全部)
-              </Option>
               {uniqueTags.map((tag) => (
                 <Option key={tag} value={tag}>
                   {tag}
