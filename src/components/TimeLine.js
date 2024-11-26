@@ -467,6 +467,21 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
                   <CalendarOutlined /> {recordDate == '提醒時間' ? '作業規劃/提醒時間' : recordDate} {formatDateTime(record[recordDate])}
                 </Tag>
               ))}
+              <Tag
+                className='timeline-tag'
+              >
+                工數合計WFO: {Math.floor(record[fieldCodes.工數合計_WFO]*100)/100}
+              </Tag>
+              <Tag
+                className='timeline-tag'
+              >
+                工數合計WFH: {Math.floor(record[fieldCodes.工數合計_WFH]*100)/100}
+              </Tag>
+              <Tag
+                className='timeline-tag'
+              >
+                工數合計: {Math.floor(record[fieldCodes.工數合計]*100)/100}
+              </Tag>
             </div>
           </div>
           <div className='timeline-footer'>

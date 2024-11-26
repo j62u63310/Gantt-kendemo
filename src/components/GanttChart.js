@@ -260,6 +260,9 @@ const GanttChart = () => {
             [fieldCodes.開始時間_初始]: record[fieldCodes.開始時間_初始].value,
             [fieldCodes.工數合計]: record[fieldCodes.工數合計].value,
             [fieldCodes.作業工數明細表格]: record[fieldCodes.作業工數明細表格].value,
+            [fieldCodes.工數合計]: record[fieldCodes.工數合計].value,
+            [fieldCodes.工數合計_WFO]: record[fieldCodes.工數合計_WFO].value,
+            [fieldCodes.工數合計_WFH]: record[fieldCodes.工數合計_WFH].value,
             [fieldCodes.發行日]: 發行日,
             [fieldCodes.到期日]: 到期日,
             open: selectedSetting.selectedOpen,
@@ -556,6 +559,10 @@ const GanttChart = () => {
         <b>問題標題: </b> ${task[fieldCodes.問題標題] || ''}<br/>
         <b>處理人員: </b> ${task[fieldCodes.處理人員] || ''}<br/>
         <b>作業狀態: </b> ${task[fieldCodes.作業狀態_完成度] || ''}<br/>
+        <b>處理人員: </b> ${task[fieldCodes.處理人員] || ''}<br/>
+        <b>工數合計WFO: </b> ${task[fieldCodes.工數合計_WFO] || ''}<br/>
+        <b>工數合計WFH: </b> ${task[fieldCodes.工數合計_WFH] || ''}<br/>
+        <b>工數合計: </b> ${task[fieldCodes.工數合計] || ''}<br/>
         <b>發行時間: </b> ${
           dayjs(start).isValid()
             ? dayjs(start).format('YYYY/MM/DD HH:mm')
