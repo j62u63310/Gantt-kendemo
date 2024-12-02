@@ -978,6 +978,7 @@ const GanttChart = () => {
         footer={null}
         closeIcon={null}
         className="timeline-tag-modal"
+        width={1600}
       >
          {currentTask ? (
           <div>

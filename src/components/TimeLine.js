@@ -71,7 +71,11 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
       const now = new Date();
       now.setHours(now.getHours() + 8);
       const formattedTime = new Date(currentTime.getTime() + 8 * 60 * 60 * 1000).toISOString().replace('Z', '+08:00');
-      const updateData = { [showDate]: { value: formattedTime }, 更新時間: { value: now.toISOString().replace('Z', '+08:00') } };
+      const updateData = { 
+        [fieldCodes.作業狀態_完成度]: { value: record[fieldCodes.作業狀態_完成度] == 'A-發行' ? 'B-進行中' : record[fieldCodes.作業狀態_完成度] },
+        [showDate]: { value: formattedTime }, 
+        更新時間: { value: now.toISOString().replace('Z', '+08:00') } 
+      };
 
       const newEntry = {
         value: {
@@ -79,7 +83,7 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
           [fieldCodes.事件類型]: { value: showMessage },
           [fieldCodes.作業時間]: { value: formattedTime },
           [fieldCodes.作業帳]: { value: [{ code: kintone.getLoginUser().code }] },
-          [fieldCodes.作業狀態]: { value: record[fieldCodes.作業狀態_完成度] },
+          [fieldCodes.作業狀態]: { value: record[fieldCodes.作業狀態_完成度] == 'A-發行' ? 'B-進行中' : record[fieldCodes.作業狀態_完成度] },
           [fieldCodes.作業工時說明]: { value: workDescription }, 
           [fieldCodes.工數_WFO]: { value: WFO },
           [fieldCodes.工數_WFH]: { value: WFH },
@@ -216,10 +220,10 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
               <input type="date" id="customDate" value="${format(dayAfterTomorrow, 'yyyy-MM-dd')}" max="${format(now, 'yyyy-MM-dd')}">
             </label>
             <label class="input-with-unit">
-              WFO(公司) <input type="number" id="WFO" name="WFO" min="0" step="0.1" value="0.0">
+              WFO(公司) <input type="number" id="WFO" name="WFO" min="0" step="0.5" value="0.0">
             </label>
             <label class="input-with-unit">
-              WFH(自宅) <input type="number" id="WFH" name="WFH" min="0" step="0.1" value="0.0">
+              WFH(自宅) <input type="number" id="WFH" name="WFH" min="0" step="0.5" value="0.0">
             </label>
             <label>
               作業工時說明：<input type="text" id="workDescription" placeholder="輸入說明">
