@@ -115,7 +115,7 @@ export const appId = {
 export const colors = {
   'A-發行': '#91BBF7',
   'B-進行中': '#72d766',
-  'C-驗收( V&V )': '#20C997',
+  'C-驗收( V&V )': '#D1C4E9',
   'F-結案': '#a6adb3',
   'P-暫緩': '#EF6B6B',
   'R-返工': '#FFA500',
@@ -128,7 +128,7 @@ export const getStatusColor = (status) => {
         case "B-進行中":
           return '#72d766';
         case "C-驗收( V&V )":
-          return '#20C997';
+          return '#D1C4E9';
         case "F-結案":
           return '#a6adb3';
         case "P-暫緩":

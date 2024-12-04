@@ -52,6 +52,8 @@ const GanttChart = () => {
   const [isModalShow, setIsModalShow] = useState(false);
   const [currentTask, setCurrentTask] = useState(null);
 
+  const [WIP, setWIP] = useState(false);
+
   useEffect(() => {
     document.cookie = `ken_Setting=${JSON.stringify(selectedSetting)}; path=/k/${kintone.app.getId()}/; expires=Fri, 31 Dec 9999 23:59:59 GMT`;
   }, [selectedSetting])
@@ -101,7 +103,7 @@ const GanttChart = () => {
     const filteredData = selectedSetting.selectedCategory === '(全部)'
       ? 標籤資料
       : 標籤資料.filter(record => 
-        selectedSetting.selectedCategory == '今日事' ? record[fieldCodes.標籤類別].value== '公司名_MA' || record[fieldCodes.標籤類別].value== '公司名_SI' || record[fieldCodes.標籤類別].value== '公司名_POC'  : record[fieldCodes.標籤類別].value === selectedSetting.selectedCategory);
+        selectedSetting.selectedCategory == '今日事' || selectedSetting.selectedCategory == 'WIP' ? record[fieldCodes.標籤類別].value== '公司名_MA' || record[fieldCodes.標籤類別].value== '公司名_SI' || record[fieldCodes.標籤類別].value== '公司名_POC'  : record[fieldCodes.標籤類別].value === selectedSetting.selectedCategory);
     return filteredData;
   }, [selectedSetting, 標籤資料]);
 
@@ -200,7 +202,7 @@ const GanttChart = () => {
     for (const record of filteredCategories) {
       const 標籤 = record[fieldCodes.標籤].value;
       const 標籤類別 = record[fieldCodes.標籤類別].value;
-      if ((selectedSetting.selectedCategory !== '(全部)' && selectedSetting.selectedCategory !== '今日事') && 標籤類別 !== selectedSetting.selectedCategory) continue;
+      if ((selectedSetting.selectedCategory !== '(全部)' && selectedSetting.selectedCategory !== '今日事' && selectedSetting.selectedCategory !== 'WIP') && 標籤類別 !== selectedSetting.selectedCategory) continue;
       if (selectedSetting.selectedTag !== '(全部)' && 標籤 !== selectedSetting.selectedTag) continue;
       if (!filterData.some(record => {
         const 所有標籤 = record[fieldCodes.標籤].value.split(',');
@@ -798,7 +800,6 @@ const GanttChart = () => {
               style={{ width: '200px' }}
               listHeight={500}
               placeholder="選擇標籤類別"
-              allowClear
               showSearch
               suffixIcon={<BorderlessTableOutlined />}
               filterOption={(input, option) =>
@@ -967,6 +968,22 @@ const GanttChart = () => {
               }}
             >
               今日事
+            </Button>
+          </Col>
+          <Col>
+            <Button
+                type="primary"
+                className={`gantt-today-${WIP}`}
+                onClick={() => {
+                  setWIP(!WIP);
+                  setIsState(['A-發行', 'B-進行中', 'C-驗收( V&V )', 'R-返工'])
+                  setSelectedSetting((prev) => ({
+                    ...prev,
+                    selectedCategory: WIP ? '(全部)' : 'WIP',
+                  }));
+                }}
+              >
+                WIP
             </Button>
           </Col>
         </Row>
