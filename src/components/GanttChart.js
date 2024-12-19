@@ -29,8 +29,10 @@ const GanttChart = () => {
   const 行事曆資料 = useSelector((state) => state.行事曆);
   const 登入帳號 = useSelector((state) => state.登入帳號);
 
+  const [isMainUser ,setIsMainUser] = useState(false);
+
   const showSetting = JSON.parse(getCookie("ken_Setting")) || {
-      selectedCategory: (標籤資料.length > 0 && 標籤資料[0][fieldCodes.標籤類別]?.value) || '其他',
+      selectedCategory: (標籤資料.length > 0 && 標籤資料[0][fieldCodes.標籤類別]?.value) || '公司名_SI',
       selectedTag: '(全部)',
       selectedTag2: '(全部)',
       selectedUser: kintone.getLoginUser().code,
@@ -38,10 +40,11 @@ const GanttChart = () => {
       selectedView: 'month',
       selectedOpen: false,
       selectedToday: false,
+      selectedWeek: false,
       selectedShowDate: fieldCodes.開始時間,
   };
 
-  if(showSetting.selectedCategory == '(全部)') showSetting.selectedCategory = (標籤資料.length > 0 && 標籤資料[0][fieldCodes.標籤類別]?.value) || '其他';
+  if(showSetting.selectedCategory == '(全部)') showSetting.selectedCategory = (標籤資料.length > 0 && 標籤資料[0][fieldCodes.標籤類別]?.value) || 'WBS(專案管理)';
   showSetting.selectedUser = kintone.getLoginUser().code;
   showSetting.selectedDate = dayjs().subtract(7, 'day').toISOString();
 
@@ -53,6 +56,7 @@ const GanttChart = () => {
   const [currentTask, setCurrentTask] = useState(null);
 
   const [WIP, setWIP] = useState(false);
+  const [WBS, setWBS] = useState(false);
 
   useEffect(() => {
     document.cookie = `ken_Setting=${JSON.stringify(selectedSetting)}; path=/k/${kintone.app.getId()}/; expires=Fri, 31 Dec 9999 23:59:59 GMT`;
@@ -103,7 +107,7 @@ const GanttChart = () => {
     const filteredData = selectedSetting.selectedCategory === '(全部)'
       ? 標籤資料
       : 標籤資料.filter(record => 
-        selectedSetting.selectedCategory == '今日事' || selectedSetting.selectedCategory == 'WIP' ? record[fieldCodes.標籤類別].value== '公司名_MA' || record[fieldCodes.標籤類別].value== '公司名_SI' || record[fieldCodes.標籤類別].value== '公司名_POC'  : record[fieldCodes.標籤類別].value === selectedSetting.selectedCategory);
+        selectedSetting.selectedCategory == '今日事' || selectedSetting.selectedCategory == '今週事' || selectedSetting.selectedCategory == 'WIP' || selectedSetting.selectedCategory == 'WBS' ? record[fieldCodes.標籤類別].value== '公司名_MA' || record[fieldCodes.標籤類別].value== '公司名_SI' || record[fieldCodes.標籤類別].value== '公司名_POC'  : record[fieldCodes.標籤類別].value === selectedSetting.selectedCategory);
     return filteredData;
   }, [selectedSetting, 標籤資料]);
 
@@ -147,9 +151,17 @@ const GanttChart = () => {
       });
     }
 
+    if(selectedSetting.selectedWeek){
+      filteredData = filteredData.filter(record => {
+        const 開始時間 = dayjs(record[fieldCodes.開始時間].value);
+        const 提醒時間 = dayjs(record[fieldCodes.提醒時間].value);
+        return 開始時間.isSame(dayjs(new Date()), 'week') || 開始時間.isAfter(dayjs(new Date()),  'week') || 提醒時間.isSame(dayjs(new Date()),  'week') || 提醒時間.isAfter(dayjs(new Date()),  'week');
+      });
+    }
+
     if (selectedSetting.selectedUser && selectedSetting.selectedUser !== '所有人員(ALL)') {
       filteredData = filteredData.filter(record =>
-        record[fieldCodes.處理人員].value.some(user => user.code === selectedSetting.selectedUser)
+        record[isMainUser ? fieldCodes.主要執行者 : fieldCodes.處理人員].value.some(user => user.code === selectedSetting.selectedUser)
       );
     }
 
@@ -179,7 +191,7 @@ const GanttChart = () => {
     setState(Object.entries(eventCounts));
 
     return filteredData;
-  }, [行事曆資料, selectedSetting, isState, filteredCategories]);
+  }, [行事曆資料, selectedSetting, isState, filteredCategories, isMainUser]);
   
   const uniqueFilterTags = useMemo(() =>{
     const result = [];
@@ -202,7 +214,7 @@ const GanttChart = () => {
     for (const record of filteredCategories) {
       const 標籤 = record[fieldCodes.標籤].value;
       const 標籤類別 = record[fieldCodes.標籤類別].value;
-      if ((selectedSetting.selectedCategory !== '(全部)' && selectedSetting.selectedCategory !== '今日事' && selectedSetting.selectedCategory !== 'WIP') && 標籤類別 !== selectedSetting.selectedCategory) continue;
+      if ((selectedSetting.selectedCategory !== '(全部)' && selectedSetting.selectedCategory !== '今週事' && selectedSetting.selectedCategory !== '今日事' && selectedSetting.selectedCategory !== 'WIP' && selectedSetting.selectedCategory !== 'WBS') && 標籤類別 !== selectedSetting.selectedCategory) continue;
       if (selectedSetting.selectedTag !== '(全部)' && 標籤 !== selectedSetting.selectedTag) continue;
       if (!filterData.some(record => {
         const 所有標籤 = record[fieldCodes.標籤].value.split(',');
@@ -267,6 +279,7 @@ const GanttChart = () => {
             [fieldCodes.工數合計_WFH]: record[fieldCodes.工數合計_WFH].value,
             [fieldCodes.發行日]: 發行日,
             [fieldCodes.到期日]: 到期日,
+			[fieldCodes.主要執行者]: record[fieldCodes.主要執行者].value,
             open: selectedSetting.selectedOpen,
             $id: record["$id"].value,
             progress: 1,
@@ -562,6 +575,7 @@ const GanttChart = () => {
         <b>處理人員: </b> ${task[fieldCodes.處理人員] || ''}<br/>
         <b>作業狀態: </b> ${task[fieldCodes.作業狀態_完成度] || ''}<br/>
         <b>處理人員: </b> ${task[fieldCodes.處理人員] || ''}<br/>
+		<b>主要處理人員: </b> ${task[fieldCodes.主要執行者] || ''}<br/>
         <b>工數合計WFO: </b> ${task[fieldCodes.工數合計_WFO] || ''}<br/>
         <b>工數合計WFH: </b> ${task[fieldCodes.工數合計_WFH] || ''}<br/>
         <b>工數合計: </b> ${task[fieldCodes.工數合計] || ''}<br/>
@@ -897,6 +911,7 @@ const GanttChart = () => {
                 </Option>
               ))}
             </Select>
+			<Checkbox onChange={(e) => setIsMainUser(e.target.checked)}></Checkbox>
           </Col>
 
           <Col>
@@ -949,44 +964,81 @@ const GanttChart = () => {
               <Radio.Button value="day">日</Radio.Button>
             </Radio.Group>
           </Col>
-
-          <Col>
-            <div className="show-all">
-              <Button type="primary" onClick={() =>  setSelectedSetting((prev) => ({ ...prev, selectedOpen: !prev.selectedOpen }))} className={`show-all-${selectedSetting.selectedOpen}`}>全展開</Button>
-            </div>
-          </Col>
-          <Col>
-            <Button
-              type="primary"
-              className={`gantt-today-${selectedSetting.selectedToday}`}
-              onClick={() => {
-                setSelectedSetting((prev) => ({
-                  ...prev,
-                  selectedCategory: selectedSetting.selectedToday ? '(全部)' : '今日事',
-                  selectedToday: !selectedSetting.selectedToday
-                }));
-              }}
-            >
-              今日事
-            </Button>
-          </Col>
+        </Row>
+		<Row>
+			<Col>
+				<div className="show-all">
+					<Button type="primary" onClick={() =>  setSelectedSetting((prev) => ({ ...prev, selectedOpen: !prev.selectedOpen }))} className={`show-all-${selectedSetting.selectedOpen}`}>全展開</Button>
+				</div>
+			</Col>
+			<Col>
+				<Button
+					type="primary"
+					className={`gantt-today-${selectedSetting.selectedToday}`}
+					style={{marginLeft: '10px'}}
+					onClick={() => {
+						setSelectedSetting((prev) => ({
+						...prev,
+						selectedCategory: selectedSetting.selectedToday ? '(全部)' : '今日事',
+						selectedToday: !selectedSetting.selectedToday,
+						selectedWeek: false
+						}));
+					}}
+				>
+				今日事
+				</Button>
+			</Col>
+			<Col>
+				<Button
+					type="primary"
+					className={`gantt-today-${selectedSetting.selectedWeek}`}
+					style={{marginLeft: '20px'}}
+					onClick={() => {
+					setSelectedSetting((prev) => ({
+						...prev,
+						selectedCategory: selectedSetting.selectedWeek ? '(全部)' : '今週事',
+						selectedWeek: !selectedSetting.selectedWeek,
+						selectedToday: false
+					}));
+					}}
+				>
+					今週事
+				</Button>
+			</Col>
           <Col>
             <Button
                 type="primary"
                 className={`gantt-today-${WIP}`}
+				style={{marginLeft: '20px'}}
                 onClick={() => {
                   setWIP(!WIP);
+				  setWBS(false);
                   setIsState(['A-發行', 'B-進行中', 'C-驗收( V&V )', 'R-返工'])
                   setSelectedSetting((prev) => ({
                     ...prev,
-                    selectedCategory: WIP ? '(全部)' : 'WIP',
+                    selectedCategory: WIP ? '公司名_SI' : 'WIP',
                   }));
                 }}
               >
                 WIP
             </Button>
+			<Button
+                type="primary"
+                className={`gantt-today-${WBS}`}
+				style={{marginLeft: '20px'}}
+                onClick={() => {
+                  setWBS(!WBS);
+				  setWIP(false);
+                  setSelectedSetting((prev) => ({
+                    ...prev,
+                    selectedCategory: WBS ? '公司名_SI' : 'WBS(專案管理)',
+                  }));
+                }}
+              >
+                WBS
+            </Button>
           </Col>
-        </Row>
+		</Row>
       </div>
       <div ref={ganttContainer} style={{ height: '600px', width: '99%', marginLeft: '10px', marginBottom: '20px'}} />
       <Modal

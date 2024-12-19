@@ -453,6 +453,15 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
                 </Tag>
               )}
             </div>
+            <div className="timeline-users">
+              {record[fieldCodes.主要執行者].length > 0 ?(
+                <Tag className="timeline-tag timeline-user">
+                  <UserOutlined />主要人員： {record[fieldCodes.主要執行者][0].name}
+                </Tag>
+              ):(
+                null
+              )}
+            </div>
             <div className="timeline-allTag">
               {標籤.map((tag, index) => (
                 <Tag 
