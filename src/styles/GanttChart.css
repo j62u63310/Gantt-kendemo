@@ -112,6 +112,10 @@
 .gantt_timeline_past {
     background-color: #fff8dc;
 }
+.gantt_timeline_today {
+    background-color: #ccffb4;
+}
+
 .gantt_timeline_cell {
     background-color: transparent;
 }

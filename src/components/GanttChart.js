@@ -13,6 +13,7 @@ import dayjs from 'dayjs';
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
 import 'dayjs/locale/zh-tw';
 import zhTW from "antd/lib/locale/zh_TW";
+import { se } from 'date-fns/locale';
 dayjs.extend(isSameOrBefore);
 dayjs.locale('zh-tw');
 
@@ -44,7 +45,7 @@ const GanttChart = () => {
       selectedShowDate: fieldCodes.開始時間,
   };
 
-  if(showSetting.selectedCategory == '(全部)') showSetting.selectedCategory = (標籤資料.length > 0 && 標籤資料[0][fieldCodes.標籤類別]?.value) || 'WBS(專案管理)';
+  if(showSetting.selectedCategory == '(全部)') showSetting.selectedCategory = (標籤資料.length > 0 && 標籤資料[0][fieldCodes.標籤類別]?.value) || '公司名_SI';
   showSetting.selectedUser = kintone.getLoginUser().code;
   showSetting.selectedDate = dayjs().subtract(7, 'day').toISOString();
 
@@ -57,6 +58,7 @@ const GanttChart = () => {
 
   const [WIP, setWIP] = useState(false);
   const [WBS, setWBS] = useState(false);
+	const [WBSData, setWBSData] = useState([]);
 
   useEffect(() => {
     document.cookie = `ken_Setting=${JSON.stringify(selectedSetting)}; path=/k/${kintone.app.getId()}/; expires=Fri, 31 Dec 9999 23:59:59 GMT`;
@@ -107,7 +109,18 @@ const GanttChart = () => {
     const filteredData = selectedSetting.selectedCategory === '(全部)'
       ? 標籤資料
       : 標籤資料.filter(record => 
-        selectedSetting.selectedCategory == '今日事' || selectedSetting.selectedCategory == '今週事' || selectedSetting.selectedCategory == 'WIP' || selectedSetting.selectedCategory == 'WBS' ? record[fieldCodes.標籤類別].value== '公司名_MA' || record[fieldCodes.標籤類別].value== '公司名_SI' || record[fieldCodes.標籤類別].value== '公司名_POC'  : record[fieldCodes.標籤類別].value === selectedSetting.selectedCategory);
+        selectedSetting.selectedCategory == '今日事' || 
+				selectedSetting.selectedCategory == '今週事' || 
+				selectedSetting.selectedCategory == 'WIP' ? 
+				record[fieldCodes.標籤類別].value== '公司名_MA' || 
+				record[fieldCodes.標籤類別].value== '公司名_SI' || 
+				record[fieldCodes.標籤類別].value== '公司名_POC'  :
+				selectedSetting.selectedCategory == 'WBS' ?
+				record[fieldCodes.標籤類別].value== '公司名_MA' || 
+				record[fieldCodes.標籤類別].value== '公司名_SI' || 
+				record[fieldCodes.標籤類別].value== '公司名_POC' || 
+				record[fieldCodes.標籤類別].value== 'WBS(專案管理)'
+				: record[fieldCodes.標籤類別].value === selectedSetting.selectedCategory);
     return filteredData;
   }, [selectedSetting, 標籤資料]);
 
@@ -147,7 +160,7 @@ const GanttChart = () => {
       filteredData = filteredData.filter(record => {
         const 開始時間 = dayjs(record[fieldCodes.開始時間].value);
         const 提醒時間 = dayjs(record[fieldCodes.提醒時間].value);
-        return 開始時間.isSame(dayjs(new Date()), 'day') || 開始時間.isAfter(dayjs(new Date()), 'day') || 提醒時間.isSame(dayjs(new Date()), 'day') || 提醒時間.isAfter(dayjs(new Date()), 'day');
+        return 開始時間.isSame(dayjs(new Date()), 'day') || 提醒時間.isSame(dayjs(new Date()), 'day');
       });
     }
 
@@ -155,7 +168,7 @@ const GanttChart = () => {
       filteredData = filteredData.filter(record => {
         const 開始時間 = dayjs(record[fieldCodes.開始時間].value);
         const 提醒時間 = dayjs(record[fieldCodes.提醒時間].value);
-        return 開始時間.isSame(dayjs(new Date()), 'week') || 開始時間.isAfter(dayjs(new Date()),  'week') || 提醒時間.isSame(dayjs(new Date()),  'week') || 提醒時間.isAfter(dayjs(new Date()),  'week');
+        return 開始時間.isSame(dayjs(new Date()), 'week') || 提醒時間.isSame(dayjs(new Date()),  'week');
       });
     }
 
@@ -210,14 +223,35 @@ const GanttChart = () => {
     const recordLinks = [];
     const 標籤ids = {};
     const 問題編號Mapping = {};
+		const 標籤篩選資料 = [];
 
     for (const record of filteredCategories) {
       const 標籤 = record[fieldCodes.標籤].value;
       const 標籤類別 = record[fieldCodes.標籤類別].value;
       if ((selectedSetting.selectedCategory !== '(全部)' && selectedSetting.selectedCategory !== '今週事' && selectedSetting.selectedCategory !== '今日事' && selectedSetting.selectedCategory !== 'WIP' && selectedSetting.selectedCategory !== 'WBS') && 標籤類別 !== selectedSetting.selectedCategory) continue;
       if (selectedSetting.selectedTag !== '(全部)' && 標籤 !== selectedSetting.selectedTag) continue;
+			if (selectedSetting.selectedCategory == 'WBS' && 標籤類別 == 'WBS(專案管理)') continue;
       if (!filterData.some(record => {
         const 所有標籤 = record[fieldCodes.標籤].value.split(',');
+				
+				if(selectedSetting.selectedCategory == 'WBS'){
+					const 篩選標籤 = 標籤資料.filter((record) => 所有標籤.includes(record[fieldCodes.標籤].value) && record[fieldCodes.標籤類別].value == 'WBS(專案管理)');
+					if (篩選標籤.length > 0) {
+						if (所有標籤.includes(標籤)) {
+							if (!標籤篩選資料.some(existing => 
+								existing[fieldCodes.標籤].value === 標籤
+							)) {
+								標籤篩選資料.push({
+									[fieldCodes.標籤]: { value: 標籤 }
+								});
+							}
+							return true;
+						}
+					} else {
+						return false;
+					}
+				}
+
         return 所有標籤.includes(標籤);
       })) continue;
 
@@ -234,6 +268,9 @@ const GanttChart = () => {
         });
       }
     }
+
+
+		if(selectedSetting.selectedTag == '(全部)') setWBSData(標籤篩選資料);
 
     for (const record of filterData) {
 
@@ -253,6 +290,11 @@ const GanttChart = () => {
 
       const tags = record[fieldCodes.標籤].value.split(',');
       const 處理人員 = record[fieldCodes.處理人員].value.map(user => user.name).join(', ');
+
+			if(selectedSetting.selectedCategory == 'WBS'){
+				const 篩選標籤 = 標籤資料.filter((record) => tags.includes(record[fieldCodes.標籤].value) && record[fieldCodes.標籤類別].value == 'WBS(專案管理)');
+				if(篩選標籤.length == 0) continue; 
+			}
 
       for (const tag of tags) {
         const trimmedTag = tag.trim();
@@ -279,7 +321,7 @@ const GanttChart = () => {
             [fieldCodes.工數合計_WFH]: record[fieldCodes.工數合計_WFH].value,
             [fieldCodes.發行日]: 發行日,
             [fieldCodes.到期日]: 到期日,
-			[fieldCodes.主要執行者]: record[fieldCodes.主要執行者].value,
+						[fieldCodes.主要執行者]: record[fieldCodes.主要執行者].value,
             open: selectedSetting.selectedOpen,
             $id: record["$id"].value,
             progress: 1,
@@ -294,6 +336,12 @@ const GanttChart = () => {
     for (const record of filterData) {
       const 問題編號 = record[fieldCodes.問題編號].value;
       const tags = record[fieldCodes.標籤].value.split(',');
+
+			if(selectedSetting.selectedCategory == 'WBS'){
+				const 篩選標籤 = 標籤資料.filter((record) => tags.includes(record[fieldCodes.標籤].value) && record[fieldCodes.標籤類別].value == 'WBS(專案管理)');
+				if(篩選標籤.length == 0) continue; 
+			}
+
       for (const tag of tags) {
         const trimmedTag = tag.trim();
         const taskId = 問題編號Mapping[`${問題編號}-${標籤ids[trimmedTag]}`];
@@ -333,7 +381,7 @@ const GanttChart = () => {
   }, [isState]);
 
   const handleViewChange = useCallback((view) => {
-    setSelectedSetting((prev) => ({ ...prev, selectedView: view }));
+    setSelectedSetting((prev) => ({ ...prev, selectedView: view, selectedToday: false, selectedWeek: false }));
 
     // 更新甘特圖配置
     gantt.config.scale_unit = scales[view][0].unit;
@@ -575,7 +623,7 @@ const GanttChart = () => {
         <b>處理人員: </b> ${task[fieldCodes.處理人員] || ''}<br/>
         <b>作業狀態: </b> ${task[fieldCodes.作業狀態_完成度] || ''}<br/>
         <b>處理人員: </b> ${task[fieldCodes.處理人員] || ''}<br/>
-		<b>主要處理人員: </b> ${task[fieldCodes.主要執行者] || ''}<br/>
+				<b>主要處理人員: </b> ${task?.[fieldCodes.主要執行者]?.[0]?.name || ''}<br/>
         <b>工數合計WFO: </b> ${task[fieldCodes.工數合計_WFO] || ''}<br/>
         <b>工數合計WFH: </b> ${task[fieldCodes.工數合計_WFH] || ''}<br/>
         <b>工數合計: </b> ${task[fieldCodes.工數合計] || ''}<br/>
@@ -612,74 +660,82 @@ const GanttChart = () => {
     gantt.config.grid_width = 600;
 
     // 調整問題標題的列寬度和顯示方式
-    gantt.config.columns = [
-      {
-        name: '問題標題',
-        label: '問題標題',
-        width: '*',
-        tree: true,
-        template: function (task) {
-          // Function to get all ancestors including the task itself
-          function getAncestors(taskId) {
-            let ancestors = [];
-            let currentId = taskId;
-            while (gantt.isTaskExists(currentId)) {
-              let currentTask = gantt.getTask(currentId);
-              ancestors.unshift(currentTask); // Add to the front to maintain order
-              currentId = currentTask.parent;
-              if (!currentId || currentId === gantt.config.root_id) {
-                break;
-              }
-            }
-            return ancestors;
-          }
-    
-          // Get ancestors and determine color classes
-          let ancestors = getAncestors(task.id);
-          let colorDivs = ancestors
-            .map(function (ancestorTask) {
-              let colorClass = '';
-              switch (ancestorTask[fieldCodes.作業狀態_完成度]) {
-                case 'tags':
-                  colorClass = 'status-tags';
-                  break;
-                case 'A-發行':
-                  colorClass = 'status-A-發行';
-                  break;
-                case 'B-進行中':
-                  colorClass = 'status-B-進行中';
-                  break;
-                case 'C-驗收( V&V )':
-                  colorClass = 'status-C-驗收';
-                  break;
-                case 'F-結案':
-                  colorClass = 'status-F-結案';
-                  break;
-                case 'P-暫緩':
-                  colorClass = 'status-P-暫緩';
-                  break;
-                case 'R-返工':
-                  colorClass = 'status-R-返工';
-                  break;
-                default:
-                  colorClass = 'status-default';
-                  break;
-              }
-              return `<div class='status-color ${colorClass}'></div>`;
-            })
-            .join('');
-    
-          const childCount = gantt.getChildren(task.id).length;
-          const childText =
-            childCount > 0
-              ? `<span style="background-color: #ff7875; color: white; padding: 2px 6px; border-radius: 10px; font-size: 12px; margin-left: 8px;">${childCount}</span>`
-              : '';
-    
-          // Return the new template with color indicators of ancestors and the task itself
-          return `${colorDivs}${task[fieldCodes.問題標題]}${childText}`;
-        },
-      },
-    ];
+		gantt.config.columns = [
+			{
+					name: '問題標題',
+					label: '問題標題',
+					width: '*',
+					tree: true,
+					template: function (task) {
+							function getAncestors(taskId) {
+									let ancestors = [];
+									let currentId = taskId;
+									while (gantt.isTaskExists(currentId)) {
+											let currentTask = gantt.getTask(currentId);
+											ancestors.unshift(currentTask);
+											currentId = currentTask.parent;
+											if (!currentId || currentId === gantt.config.root_id) {
+													break;
+											}
+									}
+									return ancestors;
+							}
+	
+							function getColorClass(status) {
+									switch (status) {
+											case 'tags':
+													return 'status-tags';
+											case 'A-發行':
+													return 'status-A-發行';
+											case 'B-進行中':
+													return 'status-B-進行中';
+											case 'C-驗收( V&V )':
+													return 'status-C-驗收';
+											case 'F-結案':
+													return 'status-F-結案';
+											case 'P-暫緩':
+													return 'status-P-暫緩';
+											case 'R-返工':
+													return 'status-R-返工';
+											default:
+													return 'status-default';
+									}
+							}
+	
+							const ancestors = getAncestors(task.id);
+							const colorDivs = ancestors
+									.map((ancestorTask) => {
+											const colorClass = getColorClass(ancestorTask[fieldCodes.作業狀態_完成度]);
+											return `<div class='status-color ${colorClass}'></div>`;
+									})
+									.join('');
+	
+							const taskStatusColorClass = getColorClass(task[fieldCodes.作業狀態_完成度]);
+									
+							const statusCounts = gantt
+							.getChildren(task.id)
+							.map((childId) => gantt.getTask(childId))
+							.reduce((acc, childTask) => {
+									const status = childTask[fieldCodes.作業狀態_完成度];
+									acc[status] = (acc[status] || 0) + 1;
+									return acc;
+							}, {});
+					
+							const childStatusText = Object.entries(statusCounts)
+							.map(
+									([status, count]) =>
+											`<span class='${getColorClass(status)}' style="color: white; padding: 2px 6px; border-radius: 10px; font-size: 12px; margin-left: 8px;">${count}</span>`
+							)
+							.join('');
+	
+							const userText = task?.[fieldCodes.主要執行者]?.[0]?.name
+									? `<span class='${taskStatusColorClass}'>${task?.[fieldCodes.主要執行者]?.[0]?.name}</span>`
+									: '';
+	
+							return `${colorDivs}${userText}${task[fieldCodes.問題標題]}${childStatusText}`;
+					},
+			},
+	];
 
     // 隱藏文件圖標，保留資料夾圖標
     gantt.templates.grid_file = function (task) {
@@ -711,6 +767,19 @@ const GanttChart = () => {
       // 獲取甘特圖範圍的第一天
       const startDate = gantt.getState().min_date;
       const startDatePos = gantt.posFromDate(startDate);
+
+			if (selectedSetting.selectedWeek) {
+				const thisWeekStart = gantt.posFromDate(dayjs().startOf('week').toDate());
+				const thisWeekEnd = gantt.posFromDate(dayjs().endOf('week').toDate());
+				if (datePos >= thisWeekStart && datePos <= thisWeekEnd) {
+						return "gantt_timeline_today";
+				}
+			}
+
+			if(selectedSetting.selectedToday){
+				const nextDatePos = gantt.posFromDate(gantt.date.add(date, 1, gantt.getState().scale_unit)); // 下一天的位置
+				if (datePos === todayPos) return "gantt_timeline_today";
+			}
     
       if (datePos === startDatePos && selectedSetting.selectedDate) return "gantt_timeline_first_cell";
       if (nextDatePos <= todayPos ) {
@@ -809,7 +878,7 @@ const GanttChart = () => {
             <Select
               value={selectedSetting.selectedCategory}
               onChange={(value) => {
-                setSelectedSetting((prev) => ({ ...prev, selectedCategory: value, selectedTag: '(全部)', selectedToday: false }));
+                setSelectedSetting((prev) => ({ ...prev, selectedCategory: value, selectedTag: '(全部)', selectedToday: false, WBS: false }));
               }}
               style={{ width: '200px' }}
               listHeight={500}
@@ -848,9 +917,9 @@ const GanttChart = () => {
               <Option key="(全部)" value="(全部)">
                 (全部)
               </Option>
-              {filteredCategories.map((tag) => (
+              {(WBS ? WBSData : filteredCategories).map((tag) => (
                 <Option
-                  key={tag[fieldCodes.標籤].value}
+                  key={ tag[fieldCodes.標籤].value}
                   value={tag[fieldCodes.標籤].value}
                 >
                   {tag[fieldCodes.標籤].value}
@@ -879,7 +948,7 @@ const GanttChart = () => {
               <Option key="(全部)" value="(全部)">
                 (全部)
               </Option>
-              {uniqueFilterTags.map((tag) => (
+              {!WBS && uniqueFilterTags.map((tag) => (
                 <Option key={tag} value={tag}>
                   {tag}
                 </Option>
@@ -980,6 +1049,7 @@ const GanttChart = () => {
 						setSelectedSetting((prev) => ({
 						...prev,
 						selectedCategory: selectedSetting.selectedToday ? '(全部)' : '今日事',
+						selectedView: 'day',
 						selectedToday: !selectedSetting.selectedToday,
 						selectedWeek: false
 						}));
@@ -997,6 +1067,7 @@ const GanttChart = () => {
 					setSelectedSetting((prev) => ({
 						...prev,
 						selectedCategory: selectedSetting.selectedWeek ? '(全部)' : '今週事',
+						selectedView: 'day',
 						selectedWeek: !selectedSetting.selectedWeek,
 						selectedToday: false
 					}));
@@ -1005,40 +1076,41 @@ const GanttChart = () => {
 					今週事
 				</Button>
 			</Col>
-          <Col>
-            <Button
-                type="primary"
-                className={`gantt-today-${WIP}`}
-				style={{marginLeft: '20px'}}
-                onClick={() => {
-                  setWIP(!WIP);
-				  setWBS(false);
-                  setIsState(['A-發行', 'B-進行中', 'C-驗收( V&V )', 'R-返工'])
-                  setSelectedSetting((prev) => ({
-                    ...prev,
-                    selectedCategory: WIP ? '公司名_SI' : 'WIP',
-                  }));
-                }}
-              >
-                WIP
-            </Button>
-			<Button
-                type="primary"
-                className={`gantt-today-${WBS}`}
-				style={{marginLeft: '20px'}}
-                onClick={() => {
-                  setWBS(!WBS);
-				  setWIP(false);
-                  setSelectedSetting((prev) => ({
-                    ...prev,
-                    selectedCategory: WBS ? '公司名_SI' : 'WBS(專案管理)',
-                  }));
-                }}
-              >
-                WBS
-            </Button>
-          </Col>
-		</Row>
+      <Col>
+        <Button
+					type="primary"
+					className={`gantt-today-${WIP}`}
+					style={{marginLeft: '20px'}}
+					onClick={() => {
+						setWIP(!WIP);
+						setWBS(false);
+						setIsState(['A-發行', 'B-進行中', 'C-驗收( V&V )', 'R-返工'])
+						setSelectedSetting((prev) => ({
+							...prev,
+							selectedCategory: WIP ? '公司名_SI' : 'WIP',
+						}));
+					}}
+				>
+					WIP
+				</Button>
+				<Button
+						type="primary"
+						className={`gantt-today-${WBS}`}
+						style={{marginLeft: '20px'}}
+						onClick={() => {
+							setWBS(!WBS);
+							setWIP(false);
+							setSelectedSetting((prev) => ({
+								...prev,
+								selectedTag: '(全部)',
+								selectedCategory: WBS ? '公司名_SI' : 'WBS',
+							}));
+						}}
+					>
+						WBS
+				</Button>
+			</Col>
+			</Row>
       </div>
       <div ref={ganttContainer} style={{ height: '600px', width: '99%', marginLeft: '10px', marginBottom: '20px'}} />
       <Modal
