@@ -1046,12 +1046,15 @@ const GanttChart = () => {
 					className={`gantt-today-${selectedSetting.selectedToday}`}
 					style={{marginLeft: '10px'}}
 					onClick={() => {
+            setWIP(false);
+            setWBS(false);
+            setIsState(['A-發行', 'B-進行中', 'C-驗收( V&V )', 'F-結案', 'P-暫緩', 'R-返工'])
 						setSelectedSetting((prev) => ({
 						...prev,
 						selectedCategory: selectedSetting.selectedToday ? '(全部)' : '今日事',
 						selectedView: 'day',
 						selectedToday: !selectedSetting.selectedToday,
-						selectedWeek: false
+						selectedWeek: false,
 						}));
 					}}
 				>
@@ -1064,13 +1067,16 @@ const GanttChart = () => {
 					className={`gantt-today-${selectedSetting.selectedWeek}`}
 					style={{marginLeft: '20px'}}
 					onClick={() => {
-					setSelectedSetting((prev) => ({
-						...prev,
-						selectedCategory: selectedSetting.selectedWeek ? '(全部)' : '今週事',
-						selectedView: 'day',
-						selectedWeek: !selectedSetting.selectedWeek,
-						selectedToday: false
-					}));
+            setWIP(false);
+            setWBS(false);
+            setIsState(['A-發行', 'B-進行中', 'C-驗收( V&V )', 'F-結案', 'P-暫緩', 'R-返工'])
+            setSelectedSetting((prev) => ({
+              ...prev,
+              selectedCategory: selectedSetting.selectedWeek ? '(全部)' : '今週事',
+              selectedView: 'day',
+              selectedWeek: !selectedSetting.selectedWeek,
+              selectedToday: false
+            }));
 					}}
 				>
 					今週事
@@ -1087,6 +1093,8 @@ const GanttChart = () => {
 						setIsState(['A-發行', 'B-進行中', 'C-驗收( V&V )', 'R-返工'])
 						setSelectedSetting((prev) => ({
 							...prev,
+              selectedWeek: false,
+              selectedToday: false,
 							selectedCategory: WIP ? '公司名_SI' : 'WIP',
 						}));
 					}}
@@ -1103,6 +1111,8 @@ const GanttChart = () => {
 							setSelectedSetting((prev) => ({
 								...prev,
 								selectedTag: '(全部)',
+                selectedWeek: false,
+                selectedToday: false,
 								selectedCategory: WBS ? '公司名_SI' : 'WBS',
 							}));
 						}}
