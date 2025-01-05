@@ -13,7 +13,6 @@ import dayjs from 'dayjs';
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
 import 'dayjs/locale/zh-tw';
 import zhTW from "antd/lib/locale/zh_TW";
-import { se } from 'date-fns/locale';
 dayjs.extend(isSameOrBefore);
 dayjs.locale('zh-tw');
 
@@ -42,6 +41,7 @@ const GanttChart = () => {
       selectedOpen: false,
       selectedToday: false,
       selectedWeek: false,
+      selectedTwoWeek: false,
       selectedShowDate: fieldCodes.開始時間,
   };
 
@@ -111,10 +111,11 @@ const GanttChart = () => {
       : 標籤資料.filter(record => 
         selectedSetting.selectedCategory == '今日事' || 
 				selectedSetting.selectedCategory == '今週事' || 
+        selectedSetting.selectedCategory == '雙週事' ||
 				selectedSetting.selectedCategory == 'WIP' ? 
 				record[fieldCodes.標籤類別].value== '公司名_MA' || 
 				record[fieldCodes.標籤類別].value== '公司名_SI' || 
-				record[fieldCodes.標籤類別].value== '公司名_POC'  :
+				record[fieldCodes.標籤類別].value== '公司名_POC':
 				selectedSetting.selectedCategory == 'WBS' ?
 				record[fieldCodes.標籤類別].value== '公司名_MA' || 
 				record[fieldCodes.標籤類別].value== '公司名_SI' || 
@@ -160,7 +161,7 @@ const GanttChart = () => {
       filteredData = filteredData.filter(record => {
         const 開始時間 = dayjs(record[fieldCodes.開始時間].value);
         const 提醒時間 = dayjs(record[fieldCodes.提醒時間].value);
-        return 開始時間.isSame(dayjs(new Date()), 'day') || 提醒時間.isSame(dayjs(new Date()), 'day');
+        return 開始時間.isSame(dayjs(new Date()), 'day') || 提醒時間.isSame(dayjs(new Date()), 'day') || record[fieldCodes.標籤].value == '行事曆';
       });
     }
 
@@ -168,7 +169,21 @@ const GanttChart = () => {
       filteredData = filteredData.filter(record => {
         const 開始時間 = dayjs(record[fieldCodes.開始時間].value);
         const 提醒時間 = dayjs(record[fieldCodes.提醒時間].value);
-        return 開始時間.isSame(dayjs(new Date()), 'week') || 提醒時間.isSame(dayjs(new Date()),  'week');
+        return 開始時間.isSame(dayjs(new Date()), 'week') || 提醒時間.isSame(dayjs(new Date()),  'week') || record[fieldCodes.標籤].value == '行事曆';
+      });
+    }
+
+    if (selectedSetting.selectedTwoWeek) {
+      filteredData = filteredData.filter(record => {
+          const 開始時間 = dayjs(record[fieldCodes.開始時間].value);
+          const 提醒時間 = dayjs(record[fieldCodes.提醒時間].value);
+          const thisWeek = dayjs(new Date());
+          const nextWeek = thisWeek.add(1, 'week');
+  
+          return (
+              開始時間.isSame(thisWeek, 'week') || 提醒時間.isSame(thisWeek, 'week') ||
+              開始時間.isSame(nextWeek, 'week') || 提醒時間.isSame(nextWeek, 'week') || record[fieldCodes.標籤].value == '行事曆'
+          );
       });
     }
 
@@ -228,7 +243,7 @@ const GanttChart = () => {
     for (const record of filteredCategories) {
       const 標籤 = record[fieldCodes.標籤].value;
       const 標籤類別 = record[fieldCodes.標籤類別].value;
-      if ((selectedSetting.selectedCategory !== '(全部)' && selectedSetting.selectedCategory !== '今週事' && selectedSetting.selectedCategory !== '今日事' && selectedSetting.selectedCategory !== 'WIP' && selectedSetting.selectedCategory !== 'WBS') && 標籤類別 !== selectedSetting.selectedCategory) continue;
+      if ((selectedSetting.selectedCategory !== '(全部)' && selectedSetting.selectedCategory !== '雙週事' && selectedSetting.selectedCategory !== '今週事' && selectedSetting.selectedCategory !== '今日事' && selectedSetting.selectedCategory !== 'WIP' && selectedSetting.selectedCategory !== 'WBS') && 標籤類別 !== selectedSetting.selectedCategory) continue;
       if (selectedSetting.selectedTag !== '(全部)' && 標籤 !== selectedSetting.selectedTag) continue;
 			if (selectedSetting.selectedCategory == 'WBS' && 標籤類別 == 'WBS(專案管理)') continue;
       if (!filterData.some(record => {
@@ -776,6 +791,15 @@ const GanttChart = () => {
 				}
 			}
 
+      if (selectedSetting.selectedTwoWeek) {
+        const thisWeekStart = gantt.posFromDate(dayjs().startOf('week').toDate());
+        const nextWeekEnd = gantt.posFromDate(dayjs().add(1, 'week').endOf('week').toDate());
+    
+        if (datePos >= thisWeekStart && datePos <= nextWeekEnd) {
+            return "gantt_timeline_today";
+        }
+      }
+
 			if(selectedSetting.selectedToday){
 				const nextDatePos = gantt.posFromDate(gantt.date.add(date, 1, gantt.getState().scale_unit)); // 下一天的位置
 				if (datePos === todayPos) return "gantt_timeline_today";
@@ -1054,6 +1078,7 @@ const GanttChart = () => {
 						selectedCategory: selectedSetting.selectedToday ? '(全部)' : '今日事',
 						selectedView: 'day',
 						selectedToday: !selectedSetting.selectedToday,
+            selectedTwoWeek: false,
 						selectedWeek: false,
 						}));
 					}}
@@ -1075,11 +1100,34 @@ const GanttChart = () => {
               selectedCategory: selectedSetting.selectedWeek ? '(全部)' : '今週事',
               selectedView: 'day',
               selectedWeek: !selectedSetting.selectedWeek,
+              selectedTwoWeek: false,
               selectedToday: false
             }));
 					}}
 				>
 					今週事
+				</Button>
+			</Col>
+      <Col>
+				<Button
+					type="primary"
+					className={`gantt-today-${selectedSetting.selectedTwoWeek}`}
+					style={{marginLeft: '20px'}}
+					onClick={() => {
+            setWIP(false);
+            setWBS(false);
+            setIsState(['A-發行', 'B-進行中', 'C-驗收( V&V )', 'F-結案', 'P-暫緩', 'R-返工'])
+            setSelectedSetting((prev) => ({
+              ...prev,
+              selectedCategory: selectedSetting.selectedTwoWeek ? '(全部)' : '雙週事',
+              selectedView: 'day',
+              selectedTwoWeek: !selectedSetting.selectedTwoWeek,
+              selectedWeek: false,
+              selectedToday: false
+            }));
+					}}
+				>
+					雙週事
 				</Button>
 			</Col>
       <Col>
@@ -1095,6 +1143,7 @@ const GanttChart = () => {
 							...prev,
               selectedWeek: false,
               selectedToday: false,
+              selectedTwoWeek: false,
 							selectedCategory: WIP ? '公司名_SI' : 'WIP',
 						}));
 					}}
@@ -1113,6 +1162,7 @@ const GanttChart = () => {
 								selectedTag: '(全部)',
                 selectedWeek: false,
                 selectedToday: false,
+                selectedTwoWeek: false,
 								selectedCategory: WBS ? '公司名_SI' : 'WBS',
 							}));
 						}}
