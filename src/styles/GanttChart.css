@@ -260,6 +260,17 @@
     transform: translate(-50%, -50%);
 }
 
+.double-circle {
+    position: absolute;
+    width: 5px;
+    height: 5px;
+    border: 4px solid rgba(0, 0, 0, 0.5); /* 內圈顏色 */
+    border-radius: 50%;
+    background-color: transparent;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 0 0.5px black; /* 外圈黑色邊框 */
+}
+
 .task-title {
     position: absolute;
     left: 0;

@@ -100,6 +100,9 @@ export const fieldCodes = {
     工數_WFH: '工數_WFH',
     工數合計: '工數合計',
     開始時間_初始: '開始時間_初始',
+
+    最新驗收日: '最新驗收日',
+    結案日: '結案日',
 }
 
 export const dateOrder = [

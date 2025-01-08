@@ -302,6 +302,9 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
       try {
         const now = new Date();
         now.setHours(now.getHours() + 8);
+        const year = now.getFullYear();
+				const month = String(now.getMonth() + 1).padStart(2, '0');
+				const day = String(now.getDate()).padStart(2, '0');
         const updateData = { [fieldCodes.作業狀態_完成度]: { value: state } };
         const newEntry = {
           value: {
@@ -319,6 +322,13 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
           record[fieldCodes.作業工數明細表格] = [newEntry];
         } else {
           record[fieldCodes.作業工數明細表格].push(newEntry);
+        }
+
+        if(state == 'C-驗收( V&V )'){
+          updateData[fieldCodes.最新驗收日] = { value: `${year}-${month}-${day}` };
+        }
+        if(state == 'F-結案'){
+          updateData[fieldCodes.結案日] = { value: `${year}-${month}-${day}` };
         }
         if(!record[fieldCodes.開始時間_初始]) updateData[fieldCodes.開始時間_初始] = { value: now.toISOString().replace('Z', '+08:00') }
         updateData[fieldCodes.作業工數明細表格] = { value: record[fieldCodes.作業工數明細表格]}

@@ -336,6 +336,8 @@ const GanttChart = () => {
             [fieldCodes.工數合計_WFH]: record[fieldCodes.工數合計_WFH].value,
             [fieldCodes.發行日]: 發行日,
             [fieldCodes.到期日]: 到期日,
+            [fieldCodes.最新驗收日]: record[fieldCodes.最新驗收日].value,
+            [fieldCodes.結案日]: record[fieldCodes.結案日].value,
 						[fieldCodes.主要執行者]: record[fieldCodes.主要執行者].value,
             open: selectedSetting.selectedOpen,
             $id: record["$id"].value,
@@ -488,6 +490,10 @@ const GanttChart = () => {
             return 22;
           case 'line-reminder':
             return 24;
+          case 'line-acceptance':
+            return 24;
+          case 'line-finish':
+            return 24;
           default:
             return 0;
         }
@@ -522,6 +528,18 @@ const GanttChart = () => {
           className: 'line-reminder', 
           color: '#ff6b6b',
           label: '提醒時間'
+        },
+        {
+          field: fieldCodes.最新驗收日, 
+          className: 'line-acceptance', 
+          color: '#9900ff',
+          label: '最新驗收日'
+        },
+        {
+          field: fieldCodes.結案日, 
+          className: 'line-finish', 
+          color: '#999999',
+          label: '結案日'
         },
       ];
     
@@ -577,6 +595,26 @@ const GanttChart = () => {
                 <div class="custom-circle ${className}" 
                      style="left: ${durationPercent}%;
                             background-color: ${color}; 
+                            top: ${getTopPosition(className)}px;" 
+                     title="${label}: ${dayjs(timeDate).format('YYYY/MM/DD HH:mm')}">
+                </div>
+              `;
+            }
+            if (className === 'line-acceptance'){
+              return `
+                <div class="double-circle ${className}" 
+                     style="left: ${durationPercent}%;
+                            border-color: ${color}; 
+                            top: ${getTopPosition(className)}px;" 
+                     title="${label}: ${dayjs(timeDate).format('YYYY/MM/DD HH:mm')}">
+                </div>
+              `;
+            }
+            if (className === 'line-finish'){
+              return `
+                <div class="double-circle ${className}" 
+                     style="left: ${durationPercent}%;
+                            border-color: ${color}; 
                             top: ${getTopPosition(className)}px;" 
                      title="${label}: ${dayjs(timeDate).format('YYYY/MM/DD HH:mm')}">
                 </div>
