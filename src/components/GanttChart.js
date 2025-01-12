@@ -491,7 +491,7 @@ const GanttChart = () => {
           case 'line-reminder':
             return 24;
           case 'line-acceptance':
-            return 24;
+            return 22;
           case 'line-finish':
             return 24;
           default:
@@ -602,9 +602,9 @@ const GanttChart = () => {
             }
             if (className === 'line-acceptance'){
               return `
-                <div class="double-circle ${className}" 
+                <div class="custom-circle ${className}" 
                      style="left: ${durationPercent}%;
-                            border-color: ${color}; 
+                            background-color: ${color};
                             top: ${getTopPosition(className)}px;" 
                      title="${label}: ${dayjs(timeDate).format('YYYY/MM/DD HH:mm')}">
                 </div>
