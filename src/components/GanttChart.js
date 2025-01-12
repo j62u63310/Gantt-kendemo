@@ -20,6 +20,8 @@ const { Option } = Select;
 
 const status = ['A-發行', 'B-進行中', 'C-驗收( V&V )', 'F-結案', 'P-暫緩', 'R-返工'];
 
+const finishImage = 'https://j62u63310.github.io/images/images/finish.png';
+
 
 
 const GanttChart = () => {
@@ -612,13 +614,18 @@ const GanttChart = () => {
             }
             if (className === 'line-finish'){
               return `
-                <div class="double-circle ${className}" 
-                     style="left: ${durationPercent}%;
-                            border-color: ${color}; 
-                            top: ${getTopPosition(className)}px;" 
-                     title="${label}: ${dayjs(timeDate).format('YYYY/MM/DD HH:mm')}">
-                </div>
-              `;
+                  <img class="" 
+                      src= ${finishImage}
+                      style="left: ${durationPercent}%;
+                              top: ${getTopPosition(className)}px; 
+                              transform: translate(-50%, -50%);
+                              position: absolute; 
+                              width: 32px; 
+                              height: 32px;
+                              z-index: 9999999" 
+                      title="${label}: ${dayjs(timeDate).format('YYYY/MM/DD HH:mm')}" 
+                      alt="${label}">
+                  `;
             }
 
             if (isOverdue) {
