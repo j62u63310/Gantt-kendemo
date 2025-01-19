@@ -73,6 +73,7 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
       const formattedTime = new Date(currentTime.getTime() + 8 * 60 * 60 * 1000).toISOString().replace('Z', '+08:00');
       const updateData = { 
         [fieldCodes.作業狀態_完成度]: { value: record[fieldCodes.作業狀態_完成度] == 'A-發行' ? 'B-進行中' : record[fieldCodes.作業狀態_完成度] },
+        [fieldCodes.最新作業異動日]: { value: now.toISOString().split("T")[0] },
         [showDate]: { value: formattedTime }, 
         更新時間: { value: now.toISOString().replace('Z', '+08:00') } 
       };
@@ -182,7 +183,7 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
     });
   
     if (isConfirmed && value) {
-      selectedDate.setHours(0, 0, 0, 0);
+      selectedDate.setHours(10, 0, 0, 0);
       await setStartTime(selectedDate, id, fieldCodes.提醒時間, record);
   
       // 顯示確認訊息
@@ -259,7 +260,7 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
             break;
           case 'custom':
             selectedDate = new Date(customDateInput.value);
-            selectedDate.setHours(0, 0, 0, 0);
+            selectedDate.setHours(10, 0, 0, 0);
             break;
         }
         // 返回選擇的日期和 WFO、WFH 值，以及作業工時說明
