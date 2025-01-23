@@ -333,6 +333,7 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
         }
         if(!record[fieldCodes.開始時間_初始]) updateData[fieldCodes.開始時間_初始] = { value: now.toISOString().replace('Z', '+08:00') }
         updateData[fieldCodes.作業工數明細表格] = { value: record[fieldCodes.作業工數明細表格]}
+        updateData[fieldCodes.最新作業異動日] = { value: now.toISOString().split("T")[0] };
 
 
         dispatch({ type: 'UPDATE_行事曆_ITEM', payload: { id, data: updateData } });
