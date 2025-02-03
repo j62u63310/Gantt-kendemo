@@ -787,12 +787,18 @@ const GanttChart = () => {
 											`<span class='${getColorClass(status)}' style="color: white; padding: 2px 6px; border-radius: 10px; font-size: 12px; margin-left: 8px;">${count}</span>`
 							)
 							.join('');
+
+              const 標籤 = task?.[fieldCodes.標籤] || '';
+
+              const match = 標籤.match(/\b(RANK\w*|RK\w*)\b/i);
+              
+              const rank = match ? `<span class='${taskStatusColorClass}'>${match[0]}</span>` : '';
 	
 							const userText = task?.[fieldCodes.主要執行者]?.[0]?.name
 									? `<span class='${taskStatusColorClass}'>${task?.[fieldCodes.主要執行者]?.[0]?.name}</span>`
 									: '';
 	
-							return `${colorDivs}${userText}${task[fieldCodes.問題標題]}${childStatusText}`;
+							return `${colorDivs}${userText} ${rank}${task[fieldCodes.問題標題]}${childStatusText}`;
 					},
 			},
 	];
