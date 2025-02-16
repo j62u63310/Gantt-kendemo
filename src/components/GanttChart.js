@@ -35,6 +35,7 @@ const GanttChart = () => {
 
   const showSetting = JSON.parse(getCookie("ken_Setting")) || {
       selectedCategory: (標籤資料.length > 0 && 標籤資料[0][fieldCodes.標籤類別]?.value) || '公司名_SI',
+      selectedCategory2: (標籤資料.length > 0 && 標籤資料[0][fieldCodes.標籤類別]?.value) || '公司名_SI',
       selectedTag: '(全部)',
       selectedTag2: '(全部)',
       selectedUser: kintone.getLoginUser().code,
@@ -107,23 +108,42 @@ const GanttChart = () => {
     return Array.from(new Set(allTags));
   }, [標籤資料]);
 
+  const uniqueFilterTags = useMemo(() =>{
+    const result = [];
+    for(const record of 行事曆資料){
+      const 所有標籤 = record[fieldCodes.標籤].value.split(',');
+      if(!所有標籤.includes(selectedSetting.selectedTag) && selectedSetting.selectedTag != '(全部)') continue;
+      for(const 標籤 of 所有標籤){
+        if(!result.includes(標籤)) result.push(標籤);
+      }
+    }
+    return result;
+  }, [行事曆資料, selectedSetting]);
+
+  useEffect(() => {
+    console.log(uniqueFilterTags)
+  }), [uniqueFilterTags];
+
   const filteredCategories = useMemo(() => {
     const filteredData = selectedSetting.selectedCategory === '(全部)'
       ? 標籤資料
-      : 標籤資料.filter(record => 
-        selectedSetting.selectedCategory == '今日事' || 
-				selectedSetting.selectedCategory == '今週事' || 
-        selectedSetting.selectedCategory == '雙週事' ||
-				selectedSetting.selectedCategory == 'WIP' ? 
-				record[fieldCodes.標籤類別].value== '公司名_MA' || 
-				record[fieldCodes.標籤類別].value== '公司名_SI' || 
-				record[fieldCodes.標籤類別].value== '公司名_POC':
-				selectedSetting.selectedCategory == 'WBS' ?
-				record[fieldCodes.標籤類別].value== '公司名_MA' || 
-				record[fieldCodes.標籤類別].value== '公司名_SI' || 
-				record[fieldCodes.標籤類別].value== '公司名_POC' || 
-				record[fieldCodes.標籤類別].value== 'WBS(專案管理)'
-				: record[fieldCodes.標籤類別].value === selectedSetting.selectedCategory);
+      : 標籤資料.filter(record => {
+          return selectedSetting.selectedCategory == '今日事' || 
+          selectedSetting.selectedCategory == '今週事' || 
+          selectedSetting.selectedCategory == '雙週事' ||
+          selectedSetting.selectedCategory == 'WIP' ? 
+          record[fieldCodes.標籤類別].value== '公司名_MA' || 
+          record[fieldCodes.標籤類別].value== '公司名_SI' || 
+          record[fieldCodes.標籤類別].value== '公司名_POC':
+          selectedSetting.selectedCategory == 'WBS' ?
+          record[fieldCodes.標籤類別].value== '公司名_MA' || 
+          record[fieldCodes.標籤類別].value== '公司名_SI' || 
+          record[fieldCodes.標籤類別].value== '公司名_POC' || 
+          record[fieldCodes.標籤類別].value== 'WBS(專案管理)' : 
+          selectedSetting.selectedCategory2 !== '(全部)' ? 
+          uniqueFilterTags.includes(record[fieldCodes.標籤].value) : 
+          record[fieldCodes.標籤類別].value === selectedSetting.selectedCategory
+        });
     return filteredData;
   }, [selectedSetting, 標籤資料]);
 
@@ -222,18 +242,6 @@ const GanttChart = () => {
 
     return filteredData;
   }, [行事曆資料, selectedSetting, isState, filteredCategories, isMainUser]);
-  
-  const uniqueFilterTags = useMemo(() =>{
-    const result = [];
-    for(const record of 行事曆資料){
-      const 所有標籤 = record[fieldCodes.標籤].value.split(',');
-      if(!所有標籤.includes(selectedSetting.selectedTag) && selectedSetting.selectedTag != '(全部)') continue;
-      for(const 標籤 of 所有標籤){
-        if(!result.includes(標籤)) result.push(標籤);
-      }
-    }
-    return result;
-  }, [行事曆資料, selectedSetting]);
 
   const tasks = useMemo(() => {
     const recordData = [];
@@ -245,7 +253,8 @@ const GanttChart = () => {
     for (const record of filteredCategories) {
       const 標籤 = record[fieldCodes.標籤].value;
       const 標籤類別 = record[fieldCodes.標籤類別].value;
-      if ((selectedSetting.selectedCategory !== '(全部)' && selectedSetting.selectedCategory !== '雙週事' && selectedSetting.selectedCategory !== '今週事' && selectedSetting.selectedCategory !== '今日事' && selectedSetting.selectedCategory !== 'WIP' && selectedSetting.selectedCategory !== 'WBS') && 標籤類別 !== selectedSetting.selectedCategory) continue;
+      
+      if ((selectedSetting.selectedCategory !== '(全部)' && selectedSetting.selectedCategory !== '雙週事' && selectedSetting.selectedCategory !== '今週事' && selectedSetting.selectedCategory !== '今日事' && selectedSetting.selectedCategory !== 'WIP' && selectedSetting.selectedCategory !== 'WBS' && selectedSetting.selectedCategory2 !== '(全部)') && (標籤類別 !== selectedSetting.selectedCategory && 標籤類別 !== selectedSetting.selectedCategory2)) continue;
       if (selectedSetting.selectedTag !== '(全部)' && 標籤 !== selectedSetting.selectedTag) continue;
 			if (selectedSetting.selectedCategory == 'WBS' && 標籤類別 == 'WBS(專案管理)') continue;
       if (!filterData.some(record => {
@@ -998,6 +1007,33 @@ const GanttChart = () => {
                   value={tag[fieldCodes.標籤].value}
                 >
                   {tag[fieldCodes.標籤].value}
+                </Option>
+              ))}
+            </Select>
+          </Col>
+
+          <Col>
+            <label style={{ marginBottom: '8px', fontWeight: 'bold' }}>標籤類別2：</label>
+            <Select
+              value={selectedSetting.selectedCategory2}
+              onChange={(value) => {
+                setSelectedSetting((prev) => ({ ...prev, selectedCategory2: value, selectedTag2: '(全部)', selectedToday: false, WBS: false }));
+              }}
+              style={{ width: '200px' }}
+              listHeight={500}
+              placeholder="選擇標籤類別2"
+              showSearch
+              suffixIcon={<BorderlessTableOutlined />}
+              filterOption={(input, option) =>
+                option.children.toLowerCase().includes(input.toLowerCase())
+              }
+            >
+              <Option key="(全部)" value="(全部)">
+                (全部)
+              </Option>
+              {uniqueTags.map((tag) => (
+                <Option key={tag} value={tag}>
+                  {tag}
                 </Option>
               ))}
             </Select>
