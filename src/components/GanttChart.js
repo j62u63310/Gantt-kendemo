@@ -22,8 +22,6 @@ const status = ['A-發行', 'B-進行中', 'C-驗收( V&V )', 'F-結案', 'P-暫
 
 const finishImage = 'https://j62u63310.github.io/images/images/finish.png';
 
-
-
 const GanttChart = () => {
 
   const ganttContainer = useRef(null);
@@ -144,6 +142,14 @@ const GanttChart = () => {
           uniqueFilterTags.includes(record[fieldCodes.標籤].value) : 
           record[fieldCodes.標籤類別].value === selectedSetting.selectedCategory
         });
+    return filteredData;
+  }, [selectedSetting, 標籤資料]);
+
+
+  const filteredCategories2 = useMemo(() => {
+    const filteredData = selectedSetting.selectedCategory2 === '(全部)'
+      ? 標籤資料
+      : 標籤資料.filter(record => record[fieldCodes.標籤類別].value === selectedSetting.selectedCategory2);
     return filteredData;
   }, [selectedSetting, 標籤資料]);
 
@@ -1059,9 +1065,12 @@ const GanttChart = () => {
               <Option key="(全部)" value="(全部)">
                 (全部)
               </Option>
-              {!WBS && uniqueFilterTags.map((tag) => (
-                <Option key={tag} value={tag}>
-                  {tag}
+              {!WBS && filteredCategories2.map((tag) => (
+                <Option
+                  key={ tag[fieldCodes.標籤].value}
+                  value={tag[fieldCodes.標籤].value}
+                  >
+                  {tag[fieldCodes.標籤].value}
                 </Option>
               ))}
             </Select>
