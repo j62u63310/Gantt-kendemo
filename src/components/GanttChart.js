@@ -31,26 +31,26 @@ const GanttChart = () => {
 
   const [isMainUser ,setIsMainUser] = useState(false);
 
-  const showSetting = JSON.parse(getCookie("ken_Setting")) || {
-      selectedCategory: (標籤資料.length > 0 && 標籤資料[0][fieldCodes.標籤類別]?.value) || '公司名_SI',
-      selectedCategory2: (標籤資料.length > 0 && 標籤資料[0][fieldCodes.標籤類別]?.value) || '公司名_SI',
-      selectedTag: '(全部)',
-      selectedTag2: '(全部)',
-      selectedUser: kintone.getLoginUser().code,
-      selectedDate: null,
-      selectedView: 'month',
-      selectedOpen: false,
-      selectedToday: false,
-      selectedWeek: false,
-      selectedTwoWeek: false,
-      selectedShowDate: fieldCodes.開始時間,
-  };
+  const showSetting = JSON.parse(getCookie("ken_Setting"));
 
   if(showSetting.selectedCategory == '(全部)') showSetting.selectedCategory = (標籤資料.length > 0 && 標籤資料[0][fieldCodes.標籤類別]?.value) || '公司名_SI';
   showSetting.selectedUser = kintone.getLoginUser().code;
   showSetting.selectedDate = dayjs().subtract(7, 'day').toISOString();
 
-  const [selectedSetting, setSelectedSetting] = useState(showSetting);
+  const [selectedSetting, setSelectedSetting] = useState({
+    selectedCategory: showSetting.selectedCategory || (標籤資料.length > 0 && 標籤資料[0][fieldCodes.標籤類別]?.value) || '公司名_SI',
+    selectedCategory2: showSetting.selectedCategory2 ||(標籤資料.length > 0 && 標籤資料[0][fieldCodes.標籤類別]?.value) || '公司名_SI',
+    selectedTag: showSetting.selectedTag || '(全部)',
+    selectedTag2: showSetting.selectedTag2 || '(全部)',
+    selectedUser: showSetting.selectedUser || kintone.getLoginUser().code,
+    selectedDate: showSetting.selectedDate || null,
+    selectedView: showSetting.selectedView || 'month',
+    selectedOpen: showSetting.selectedOpen || false,
+    selectedToday: showSetting.selectedToday || false,
+    selectedWeek: showSetting.selectedWeek || false,
+    selectedTwoWeek: showSetting.selectedTwoWeek || false,
+    selectedShowDate: showSetting.selectedShowDate || fieldCodes.開始時間,
+  });
 
   const [state, setState] = useState([]);
   const [isState, setIsState] = useState(status.filter(item => item !== 'F-結案' && item !== 'P-暫緩'));
