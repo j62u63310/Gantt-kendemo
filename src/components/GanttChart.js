@@ -23,7 +23,6 @@ const status = ['A-發行', 'B-進行中', 'C-驗收( V&V )', 'F-結案', 'P-暫
 const finishImage = 'https://j62u63310.github.io/images/images/finish.png';
 
 const GanttChart = () => {
-
   const ganttContainer = useRef(null);
   const 標籤資料 = useSelector((state) => state.標籤);
   const 行事曆資料 = useSelector((state) => state.行事曆);
@@ -39,9 +38,7 @@ const GanttChart = () => {
 
   const [selectedSetting, setSelectedSetting] = useState({
     selectedCategory: showSetting.selectedCategory || (標籤資料.length > 0 && 標籤資料[0][fieldCodes.標籤類別]?.value) || '公司名_SI',
-    selectedCategory2: showSetting.selectedCategory2 ||(標籤資料.length > 0 && 標籤資料[0][fieldCodes.標籤類別]?.value) || '公司名_SI',
     selectedTag: showSetting.selectedTag || '(全部)',
-    selectedTag2: showSetting.selectedTag2 || '(全部)',
     selectedUser: showSetting.selectedUser || kintone.getLoginUser().code,
     selectedDate: showSetting.selectedDate || null,
     selectedView: showSetting.selectedView || 'month',
@@ -56,7 +53,6 @@ const GanttChart = () => {
   const [isState, setIsState] = useState(status.filter(item => item !== 'F-結案' && item !== 'P-暫緩'));
   const [isModalShow, setIsModalShow] = useState(false);
   const [currentTask, setCurrentTask] = useState(null);
-
   const [WIP, setWIP] = useState(false);
   const [WBS, setWBS] = useState(false);
 	const [WBSData, setWBSData] = useState([]);
@@ -106,22 +102,6 @@ const GanttChart = () => {
     return Array.from(new Set(allTags));
   }, [標籤資料]);
 
-  const uniqueFilterTags = useMemo(() =>{
-    const result = [];
-    for(const record of 行事曆資料){
-      const 所有標籤 = record[fieldCodes.標籤].value.split(',');
-      if(!所有標籤.includes(selectedSetting.selectedTag) && selectedSetting.selectedTag != '(全部)') continue;
-      for(const 標籤 of 所有標籤){
-        if(!result.includes(標籤)) result.push(標籤);
-      }
-    }
-    return result;
-  }, [行事曆資料, selectedSetting]);
-
-  useEffect(() => {
-    console.log(uniqueFilterTags)
-  }), [uniqueFilterTags];
-
   const filteredCategories = useMemo(() => {
     const filteredData = selectedSetting.selectedCategory === '(全部)'
       ? 標籤資料
@@ -137,19 +117,9 @@ const GanttChart = () => {
           record[fieldCodes.標籤類別].value== '公司名_MA' || 
           record[fieldCodes.標籤類別].value== '公司名_SI' || 
           record[fieldCodes.標籤類別].value== '公司名_POC' || 
-          record[fieldCodes.標籤類別].value== 'WBS(專案管理)' : 
-          selectedSetting.selectedCategory2 !== '(全部)' ? 
-          uniqueFilterTags.includes(record[fieldCodes.標籤].value) : 
+          record[fieldCodes.標籤類別].value== 'WBS(專案管理)' :
           record[fieldCodes.標籤類別].value === selectedSetting.selectedCategory
         });
-    return filteredData;
-  }, [selectedSetting, 標籤資料]);
-
-
-  const filteredCategories2 = useMemo(() => {
-    const filteredData = selectedSetting.selectedCategory2 === '(全部)'
-      ? 標籤資料
-      : 標籤資料.filter(record => record[fieldCodes.標籤類別].value === selectedSetting.selectedCategory2);
     return filteredData;
   }, [selectedSetting, 標籤資料]);
 
@@ -816,7 +786,7 @@ const GanttChart = () => {
 							return `${colorDivs}${userText} ${rank}${task[fieldCodes.問題標題]}${childStatusText}`;
 					},
 			},
-	];
+	  ];
 
     // 隱藏文件圖標，保留資料夾圖標
     gantt.templates.grid_file = function (task) {
@@ -957,7 +927,7 @@ const GanttChart = () => {
   useEffect(() => {
     gantt.clearAll();
     gantt.parse(tasks);
-  }, [tasks, selectedSetting]);
+  }, [selectedSetting, tasks]);
 
   return (
     <ConfigProvider locale={zhTW}>
@@ -986,7 +956,6 @@ const GanttChart = () => {
               ))}
             </Select>
           </Col>
-
           <Col>
             <label style={{ marginBottom: '8px', fontWeight: 'bold' }}>標籤：</label>
             <Select
@@ -1017,65 +986,6 @@ const GanttChart = () => {
               ))}
             </Select>
           </Col>
-
-          <Col>
-            <label style={{ marginBottom: '8px', fontWeight: 'bold' }}>標籤類別2：</label>
-            <Select
-              value={selectedSetting.selectedCategory2}
-              onChange={(value) => {
-                setSelectedSetting((prev) => ({ ...prev, selectedCategory2: value, selectedTag2: '(全部)', selectedToday: false, WBS: false }));
-              }}
-              style={{ width: '200px' }}
-              listHeight={500}
-              placeholder="選擇標籤類別2"
-              showSearch
-              suffixIcon={<BorderlessTableOutlined />}
-              filterOption={(input, option) =>
-                option.children.toLowerCase().includes(input.toLowerCase())
-              }
-            >
-              <Option key="(全部)" value="(全部)">
-                (全部)
-              </Option>
-              {uniqueTags.map((tag) => (
-                <Option key={tag} value={tag}>
-                  {tag}
-                </Option>
-              ))}
-            </Select>
-          </Col>
-
-          <Col>
-            <label style={{ marginBottom: '8px', fontWeight: 'bold' }}>標籤2：</label>
-            <Select
-              value={selectedSetting.selectedTag2}
-              onChange={(value) => {
-                setSelectedSetting((prev) => ({ ...prev, selectedTag2: value || '(全部)' }));
-              }}
-              style={{ width: '200px' }}
-              listHeight={500}
-              placeholder="選擇標籤"
-              allowClear
-              showSearch
-              suffixIcon={<BorderlessTableOutlined />}
-              filterOption={(input, option) =>
-                option.children.toLowerCase().includes(input.toLowerCase())
-              }
-            >
-              <Option key="(全部)" value="(全部)">
-                (全部)
-              </Option>
-              {!WBS && filteredCategories2.map((tag) => (
-                <Option
-                  key={ tag[fieldCodes.標籤].value}
-                  value={tag[fieldCodes.標籤].value}
-                  >
-                  {tag[fieldCodes.標籤].value}
-                </Option>
-              ))}
-            </Select>
-          </Col>
-
           <Col>
             <label style={{ marginBottom: '8px', fontWeight: 'bold' }}>人員：</label>
             <Select
