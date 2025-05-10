@@ -323,6 +323,7 @@ const GanttChart = () => {
             [fieldCodes.工數合計_WFH]: record[fieldCodes.工數合計_WFH].value,
             [fieldCodes.發行日]: 發行日,
             [fieldCodes.到期日]: 到期日,
+            [fieldCodes.最新作業異動日]: record[fieldCodes.最新作業異動日].value,
             [fieldCodes.最新驗收日]: record[fieldCodes.最新驗收日].value,
             [fieldCodes.結案日]: record[fieldCodes.結案日].value,
 						[fieldCodes.主要執行者]: record[fieldCodes.主要執行者].value,
@@ -468,195 +469,226 @@ const GanttChart = () => {
     };
   
 
-    gantt.templates.task_text = function(start, end, task) {
+    gantt.templates.task_text = function (start, end, task) {
       function getTopPosition(className) {
-        switch (className) {
-          case 'line-start':
-            return 2;
-          case 'line-update':
-            return 22;
-          case 'line-reminder':
-            return 24;
-          case 'line-acceptance':
-            return 22;
-          case 'line-finish':
-            return 24;
-          default:
-            return 0;
-        }
+          switch (className) {
+              case 'line-start': return 2;
+              case 'line-update': return 22;
+              case 'line-reminder': return 24;
+              case 'line-acceptance': return 22;
+              case 'line-finish': return 24;
+              default: return 0;
+          }
       }
-
+  
       if (!start || !end) return '';
-      
+  
       const taskStart = +start;
       const taskEnd = +end;
       const taskDuration = taskEnd - taskStart;
-    
-      if (taskDuration <= 0) {
-        return '';
-      }
-    
+      if (taskDuration <= 0) return '';
+  
       const timeFields = [
-        { 
-          field: fieldCodes.開始時間, 
-          initialField: fieldCodes.開始時間_初始,
-          className: 'line-start', 
-          color: '#51cf66',
-          label: '開始時間'
-        },
-        { 
-          field: fieldCodes.更新時間, 
-          className: 'line-update', 
-          color: '#339af0',
-          label: '更新時間'
-        },
-        { 
-          field: fieldCodes.提醒時間, 
-          className: 'line-reminder', 
-          color: '#ff6b6b',
-          label: '提醒時間'
-        },
-        {
-          field: fieldCodes.最新驗收日, 
-          className: 'line-acceptance', 
-          color: '#9900ff',
-          label: '最新驗收日'
-        },
-        {
-          field: fieldCodes.結案日, 
-          className: 'line-finish', 
-          color: '#999999',
-          label: '結案日'
-        },
+          {
+              field: fieldCodes.開始時間,
+              initialField: fieldCodes.開始時間_初始,
+              className: 'line-start',
+              color: '#51cf66',
+              label: '開始時間',
+          },
+          {
+              field: fieldCodes.最新作業異動日,
+              className: 'line-update',
+              color: '#339af0',
+              label: '更新時間',
+          },
+          {
+              field: fieldCodes.提醒時間,
+              className: 'line-reminder',
+              color: '#ff6b6b',
+              label: '提醒時間',
+          },
+          {
+              field: fieldCodes.最新驗收日,
+              className: 'line-acceptance',
+              color: '#9900ff',
+              label: '最新驗收日',
+          },
+          {
+              field: fieldCodes.結案日,
+              className: 'line-finish',
+              color: '#999999',
+              label: '結案日',
+          },
       ];
-    
+  
       const linesHTML = timeFields.map(({ field, initialField, className, color, label }) => {
-        const timeValue = task[field];
-        
-        if (timeValue && dayjs(timeValue).isValid()) {
-          const timeDate = new Date(timeValue);
-          const duration = timeDate - taskStart;
-          let durationPercent = (duration / taskDuration) * 100;
-          const isOverdue = durationPercent > 100;
-
-          let initialLineHTML = '';
-          if (className === 'line-start') {
-            const initialTimeValue = task[initialField];
-            if (initialTimeValue && dayjs(initialTimeValue).isValid()) {
-              const initialDate = new Date(initialTimeValue);
-              const initialDurationPercent = ((initialDate - taskStart) / taskDuration) * 100;
-              if (initialDurationPercent > 0) {
-                  initialLineHTML = `
-                    <div class="custom-line ${className} dashed-line" 
-                        style="width: ${initialDurationPercent}%; 
-                                background-color: #808080;
-                                border: 1px solid rgba(0, 0, 0, 0.2);
-                                z-index: 2;
-                                top: ${getTopPosition(className)}px;
-                                background-image: linear-gradient(to right,
-                                    #e2e2e2 45%,
-                                    #f5f5f5 50%,
-                                    #ffffff 55%
-                                );
-                                background-size: 10px 100%;
-                                background-repeat: repeat-x;" 
-                        title="初始時間: ${dayjs(initialDate).format('YYYY/MM/DD HH:mm')}">
-                    </div>
-                `;
+          const timeValue = task[field];
+          if (timeValue && dayjs(timeValue).isValid()) {
+              const timeDate = new Date(timeValue);
+              const duration = timeDate - taskStart;
+              const durationPercent = (duration / taskDuration) * 100;
+              const isOverdue = durationPercent > 100;
+  
+              let initialLineHTML = '';
+              if (className === 'line-start') {
+                  const initialTimeValue = task[initialField];
+                  if (initialTimeValue && dayjs(initialTimeValue).isValid()) {
+                      const initialDate = new Date(initialTimeValue);
+                      const initialDurationPercent = ((initialDate - taskStart) / taskDuration) * 100;
+                      if (initialDurationPercent > 0) {
+                          initialLineHTML = `
+                              <div class="custom-line ${className} dashed-line"
+                                  style="width: ${initialDurationPercent}%;
+                                          background-color: #808080;
+                                          border: 1px solid rgba(0, 0, 0, 0.2);
+                                          z-index: 2;
+                                          top: ${getTopPosition(className)}px;
+                                          background-image: linear-gradient(to right,
+                                              #e2e2e2 45%,
+                                              #f5f5f5 50%,
+                                              #ffffff 55%);
+                                          background-size: 10px 100%;
+                                          background-repeat: repeat-x;"
+                                  title="初始時間: ${dayjs(initialDate).format('YYYY/MM/DD HH:mm')}">
+                              </div>
+                          `;
+                      }
+                  }
               }
-            }
+  
+              if (durationPercent >= 0) {
+                  if (className === 'line-reminder') {
+                      return `
+                          <div class="custom-triangle ${className}"
+                              style="left: ${durationPercent}%;
+                                      top: ${getTopPosition(className)}px;"
+                              title="${label}: ${dayjs(timeDate).format('YYYY/MM/DD HH:mm')}">
+                          </div>
+                      `;
+                  }
+  
+                  if (className === 'line-update') {
+                      return `
+                          <div class="custom-star ${className}"
+                              style="left: ${durationPercent}%;
+                                      top: ${getTopPosition(className)}px;
+                                      position: absolute;
+                                      transform: translate(-50%, -50%);
+                                      font-size: 18px;
+                                      color: ${color};
+                                      z-index: 9999;"
+                              title="${label}: ${dayjs(timeDate).format('YYYY/MM/DD HH:mm')}">
+                              ⭐
+                          </div>
+                      `;
+                  }
+  
+                  if (className === 'line-acceptance') {
+                      return `
+                          <div class="custom-circle ${className}"
+                              style="left: ${durationPercent}%;
+                                      background-color: ${color};
+                                      top: ${getTopPosition(className)}px;"
+                              title="${label}: ${dayjs(timeDate).format('YYYY/MM/DD HH:mm')}">
+                          </div>
+                      `;
+                  }
+  
+                  if (className === 'line-finish') {
+                      return `
+                          <img class=""
+                              src=${finishImage}
+                              style="left: ${durationPercent}%;
+                                      top: ${getTopPosition(className)}px;
+                                      transform: translate(-50%, -50%);
+                                      position: absolute;
+                                      width: 32px;
+                                      height: 32px;
+                                      z-index: 9999999"
+                              title="${label}: ${dayjs(timeDate).format('YYYY/MM/DD HH:mm')}"
+                              alt="${label}">
+                      `;
+                  }
+  
+                  if (isOverdue) {
+                      const solidLineWidth = 100;
+                      const overdueDuration = timeDate - taskEnd;
+                      const overduePercent = (overdueDuration / taskDuration) * 100;
+  
+                      return `
+                          ${initialLineHTML}
+                          <div class="custom-line ${className}"
+                              style="width: ${solidLineWidth}%;
+                                      background-color: ${color};
+                                      top: ${getTopPosition(className)}px;"
+                              title="${label}: ${dayjs(timeDate).format('YYYY/MM/DD HH:mm')}">
+                          </div>
+                          <div class="custom-line ${className} dashed"
+                              style="left: ${solidLineWidth}%;
+                                      width: ${overduePercent}%;
+                                      background-color: ${color};
+                                      top: ${getTopPosition(className)}px;"
+                              title="${label}: ${dayjs(timeDate).format('YYYY/MM/DD HH:mm')}">
+                          </div>
+                      `;
+                  } else {
+                      return `
+                          ${initialLineHTML}
+                          <div class="custom-line ${className}"
+                              style="width: ${durationPercent}%;
+                                      background-color: ${color};
+                                      top: ${getTopPosition(className)}px;"
+                              title="${label}: ${dayjs(timeDate).format('YYYY/MM/DD HH:mm')}">
+                          </div>
+                      `;
+                  }
+              }
           }
-          
-          if (durationPercent >= 0) {
-            if (className === 'line-reminder') {
-              return `
-                <div class="custom-triangle ${className}" 
-                     style="left: ${durationPercent}%; 
-                            top: ${getTopPosition(className)}px;" 
-                     title="${label}: ${dayjs(timeDate).format('YYYY/MM/DD HH:mm')}">
-                </div>
-              `;
-            }
-            if (className === 'line-update') {
-              return `
-                <div class="custom-circle ${className}" 
-                     style="left: ${durationPercent}%;
-                            background-color: ${color}; 
-                            top: ${getTopPosition(className)}px;" 
-                     title="${label}: ${dayjs(timeDate).format('YYYY/MM/DD HH:mm')}">
-                </div>
-              `;
-            }
-            if (className === 'line-acceptance'){
-              return `
-                <div class="custom-circle ${className}" 
-                     style="left: ${durationPercent}%;
-                            background-color: ${color};
-                            top: ${getTopPosition(className)}px;" 
-                     title="${label}: ${dayjs(timeDate).format('YYYY/MM/DD HH:mm')}">
-                </div>
-              `;
-            }
-            if (className === 'line-finish'){
-              return `
-                  <img class="" 
-                      src= ${finishImage}
-                      style="left: ${durationPercent}%;
-                              top: ${getTopPosition(className)}px; 
-                              transform: translate(-50%, -50%);
-                              position: absolute; 
-                              width: 32px; 
-                              height: 32px;
-                              z-index: 9999999" 
-                      title="${label}: ${dayjs(timeDate).format('YYYY/MM/DD HH:mm')}" 
-                      alt="${label}">
-                  `;
-            }
-
-            if (isOverdue) {
-              const solidLineWidth = 100;
-              const overdueDuration = timeDate - taskEnd;
-              const overduePercent = (overdueDuration / taskDuration) * 100;
-    
-              return `
-                ${initialLineHTML}
-                <div class="custom-line ${className}" 
-                     style="width: ${solidLineWidth}%; 
-                            background-color: ${color}; 
-                            top: ${getTopPosition(className)}px;" 
-                     title="${label}: ${dayjs(timeDate).format('YYYY/MM/DD HH:mm')}">
-                </div>
-                <div class="custom-line ${className} dashed" 
-                     style="left: ${solidLineWidth}%; 
-                            width: ${overduePercent}%; 
-                            background-color: ${color}; 
-                            top: ${getTopPosition(className)}px;" 
-                     title="${label}: ${dayjs(timeDate).format('YYYY/MM/DD HH:mm')}">
-                </div>
-              `;
-            } else {
-              return `
-                ${initialLineHTML}
-                <div class="custom-line ${className}" 
-                     style="width: ${durationPercent}%; 
-                            background-color: ${color}; 
-                            top: ${getTopPosition(className)}px;" 
-                     title="${label}: ${dayjs(timeDate).format('YYYY/MM/DD HH:mm')}">
-                </div>
-              `;
-            }
-          }
-        }
-        return '';
+          return '';
       }).join('');
-    
+  
+      // 🔽 顯示子任務中最新「更新時間」為星星
+      let latestUpdateHTML = '';
+      if (task.type === gantt.config.types.project) {
+          const children = gantt.getChildren(task.id).map(id => gantt.getTask(id));
+          const updates = children
+              .map(child => child[fieldCodes.最新作業異動日])
+              .filter(v => v && dayjs(v).isValid());
+  
+          if (updates.length > 0) {
+              const latest = updates.sort((a, b) => new Date(b) - new Date(a))[0];
+              const latestDate = new Date(latest);
+              const duration = latestDate - taskStart;
+              const durationPercent = (duration / taskDuration) * 100;
+  
+              if (durationPercent >= 0 && durationPercent <= 100) {
+                  latestUpdateHTML = `
+                      <div class="custom-star line-update"
+                          style="left: ${durationPercent}%;
+                                  top: ${getTopPosition('line-update')}px;
+                                  position: absolute;
+                                  transform: translate(-50%, -50%);
+                                  font-size: 20px;
+                                  color: #339af0;
+                                  z-index: 9999;"
+                          title="子任務更新時間: ${dayjs(latestDate).format('YYYY/MM/DD HH:mm')}">
+                          ⭐
+                      </div>
+                  `;
+              }
+          }
+      }
+  
       return `
-        <div class="custom-task-content">
-          ${linesHTML}
-          <div class="task-title">${task[fieldCodes.問題標題]}</div>
-        </div>
+          <div class="custom-task-content">
+              ${linesHTML}
+              ${latestUpdateHTML}
+              <div class="task-title">${task[fieldCodes.問題標題]}</div>
+          </div>
       `;
-    };
+  };
+  
 
     // 設置 tooltip 顯示
     gantt.templates.tooltip_text = function (start, end, task) {
