@@ -1,7 +1,7 @@
 import React, { useCallback, useState, useEffect,  useMemo } from 'react';
 import { useDispatch } from 'react-redux';
-import { Typography, Button, Tag, message } from 'antd';
-import { CalendarOutlined, FlagOutlined, UserOutlined } from '@ant-design/icons';
+import { Typography, Button, Tag, message, Tooltip } from 'antd';
+import { CalendarOutlined, FlagOutlined, StarOutlined, StarFilled, UserOutlined } from '@ant-design/icons';
 import { format, addDays, subDays  } from 'date-fns';
 import { fi, zhTW } from 'date-fns/locale';
 import Swal from 'sweetalert2';
@@ -19,6 +19,7 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
 
   const [timeline, setTimeline] = useState(record);
 
+  const [isStarred, setIsStarred] = useState(record[fieldCodes.Follower].some(user => user.code === kintone.getLoginUser().code));
   const dispatch = useDispatch();
 
   useEffect(() => {
@@ -385,6 +386,36 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
     return shortenedTitle;
   };
 
+  const handleStartClick = useCallback(async () => {
+      const loginUser = kintone.getLoginUser();
+      const user = { code: loginUser.code, name: loginUser.name };
+      const followers = record[fieldCodes.Follower] || [];
+
+      const isAlreadyStarred = followers.some(f => f.code === user.code);
+
+      let newFollowers;
+
+      if (isAlreadyStarred) {
+          newFollowers = followers.filter(f => f.code !== user.code);
+          setIsStarred(false);
+      } else {
+          newFollowers = [...followers, user];
+          setIsStarred(true);
+      }
+
+      dispatch({ type: 'UPDATE_行事曆_ITEM', payload: { id: record.$id, data: { [fieldCodes.Follower]: { value: newFollowers } } } });
+
+      await kintone.api(kintone.api.url('/k/v1/record', true), 'PUT', {
+          app: kintone.app.getId(),
+          id: record.$id,
+          record: {
+              [fieldCodes.Follower]: { value: newFollowers },
+          }
+      });
+      record[fieldCodes.Follower] = newFollowers;
+  }, [record]);
+
+
 
 /* ---------------------------------------------------------------*/
 /*                          顯示的畫面                             */
@@ -443,6 +474,13 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
               <Text className="timeline-title">{問題標題}</Text>
             </div>
             <div className="timeline-info">
+              <Tooltip title={isStarred ? "移除最愛" : "加入最愛"}>
+                <Button
+                  type="text"
+                  icon={isStarred ? <StarFilled style={{ color: '#fadb14' }} /> : <StarOutlined />}
+                  onClick={() => handleStartClick()}
+                />
+              </Tooltip>
               <Tag className={`timeline-tag timeline-priority ${record[fieldCodes.優先度]}`}>{record[fieldCodes.優先度]}</Tag>
               <Tag className="timeline-tag timeline-date">
                 <CalendarOutlined /> {fieldCodes.發行日} {formatDateTime(日期)}
@@ -541,7 +579,7 @@ const Timeline = ({ record, setIsModalShow, setSelectedTag, setSelectedCategory 
         </div>
       </div>
     );
-  }, [formatDateTime, handleTagClick, handleChangeState, handleEdit, handleStartWork, buttonConfigs, buttonStyle]);
+  }, [formatDateTime, handleTagClick, handleChangeState, handleEdit, handleStartWork, buttonConfigs, buttonStyle, isStarred]);
 
   return <>{renderEvent(timeline)}</>;
 };

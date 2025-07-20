@@ -13,6 +13,7 @@ import dayjs from 'dayjs';
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
 import 'dayjs/locale/zh-tw';
 import zhTW from "antd/lib/locale/zh_TW";
+import { fi, is } from 'date-fns/locale';
 dayjs.extend(isSameOrBefore);
 dayjs.locale('zh-tw');
 
@@ -56,6 +57,7 @@ const GanttChart = () => {
   const [WIP, setWIP] = useState(false);
   const [WBS, setWBS] = useState(false);
 	const [WBSData, setWBSData] = useState([]);
+  const [isStarred, setIsStarred] = useState(false);
 
   useEffect(() => {
     document.cookie = `ken_Setting=${JSON.stringify(selectedSetting)}; path=/k/${kintone.app.getId()}/; expires=Fri, 31 Dec 9999 23:59:59 GMT`;
@@ -198,6 +200,12 @@ const GanttChart = () => {
       });
     }
 
+    if (isStarred) {
+      filteredData = filteredData.filter(record => {
+        return record[fieldCodes.Follower].value.some(user => user.code === kintone.getLoginUser().code);
+      });
+    }
+
     filteredData = filteredData.filter(record =>
       isState.includes(record[fieldCodes.作業狀態_完成度].value)
     );
@@ -217,7 +225,7 @@ const GanttChart = () => {
     setState(Object.entries(eventCounts));
 
     return filteredData;
-  }, [行事曆資料, selectedSetting, isState, filteredCategories, isMainUser]);
+  }, [行事曆資料, selectedSetting, isState, filteredCategories, isMainUser, isStarred]);
 
   const tasks = useMemo(() => {
     const recordData = [];
@@ -229,7 +237,7 @@ const GanttChart = () => {
     for (const record of filteredCategories) {
       const 標籤 = record[fieldCodes.標籤].value;
       const 標籤類別 = record[fieldCodes.標籤類別].value;
-      
+
       if ((selectedSetting.selectedCategory !== '(全部)' && selectedSetting.selectedCategory !== '雙週事' && selectedSetting.selectedCategory !== '今週事' && selectedSetting.selectedCategory !== '今日事' && selectedSetting.selectedCategory !== 'WIP' && selectedSetting.selectedCategory !== 'WBS' && selectedSetting.selectedCategory2 !== '(全部)') && (標籤類別 !== selectedSetting.selectedCategory && 標籤類別 !== selectedSetting.selectedCategory2)) continue;
       if (selectedSetting.selectedTag !== '(全部)' && 標籤 !== selectedSetting.selectedTag) continue;
 			if (selectedSetting.selectedCategory == 'WBS' && 標籤類別 == 'WBS(專案管理)') continue;
@@ -275,7 +283,6 @@ const GanttChart = () => {
 		if(selectedSetting.selectedTag == '(全部)') setWBSData(標籤篩選資料);
 
     for (const record of filterData) {
-
       const 發行日 = dayjs(record[fieldCodes.發行日].value).format('YYYY-MM-DD HH:mm');
       const 到期日 = dayjs(record[fieldCodes.到期日].value).isSameOrBefore(dayjs(record[fieldCodes.發行日].value), 'day')
         ? dayjs(record[fieldCodes.發行日].value).endOf('day').format('YYYY-MM-DD HH:mm:ss')
@@ -288,7 +295,6 @@ const GanttChart = () => {
       const 變更到期日 = record[fieldCodes.變更到期日]?.value
         ? dayjs(record[fieldCodes.變更到期日].value).format('YYYY-MM-DD HH:mm')
         : 到期日;
-
 
       const tags = record[fieldCodes.標籤].value.split(',');
       const 處理人員 = record[fieldCodes.處理人員].value.map(user => user.name).join(', ');
@@ -327,6 +333,7 @@ const GanttChart = () => {
             [fieldCodes.最新驗收日]: record[fieldCodes.最新驗收日].value,
             [fieldCodes.結案日]: record[fieldCodes.結案日].value,
 						[fieldCodes.主要執行者]: record[fieldCodes.主要執行者].value,
+            [fieldCodes.Follower]: record[fieldCodes.Follower].value,
             open: selectedSetting.selectedOpen,
             $id: record["$id"].value,
             progress: 1,
@@ -648,7 +655,6 @@ const GanttChart = () => {
           return '';
       }).join('');
   
-      // 🔽 顯示子任務中最新「更新時間」為星星
       let latestUpdateHTML = '';
       if (task.type === gantt.config.types.project) {
           const children = gantt.getChildren(task.id).map(id => gantt.getTask(id));
@@ -1207,6 +1213,16 @@ const GanttChart = () => {
 					>
 						WBS
 				</Button>
+        <Button
+            type="primary"
+						className={`gantt-today-${isStarred}`}
+						style={{marginLeft: '20px'}}
+						onClick={() => {
+							setIsStarred(!isStarred);
+						}}
+          >
+            我的最愛
+        </Button>
 			</Col>
 			</Row>
       </div>

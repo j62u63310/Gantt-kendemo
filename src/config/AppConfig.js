@@ -104,6 +104,8 @@ export const fieldCodes = {
 
     最新驗收日: '最新驗收日',
     結案日: '結案日',
+
+    Follower: 'Follower',
 }
 
 export const dateOrder = [
