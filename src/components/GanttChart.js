@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
+import html2canvas from "html2canvas";
 import 'dhtmlx-gantt/codebase/dhtmlxgantt.css';
 import { gantt } from 'dhtmlx-gantt';
 import { useSelector } from 'react-redux';
 import { Button, Select, DatePicker, Badge, Tooltip, ConfigProvider, Modal, Row, Col, Checkbox, Radio, Tag } from 'antd';
 import { fieldCodes, getStatusColor, 本地化 } from '../config/AppConfig';
-import { UserOutlined, BorderlessTableOutlined, CalendarOutlined, CloseOutlined  } from '@ant-design/icons';
+import { UserOutlined, BorderlessTableOutlined, CalendarOutlined, CloseOutlined } from '@ant-design/icons';
 import { getCookie } from '../service/process';
 import TimeLine from './TimeLine';
 import "../styles/GanttChart.css"
@@ -29,11 +30,11 @@ const GanttChart = () => {
   const 行事曆資料 = useSelector((state) => state.行事曆);
   const 登入帳號 = useSelector((state) => state.登入帳號);
 
-  const [isMainUser ,setIsMainUser] = useState(false);
+  const [isMainUser, setIsMainUser] = useState(false);
 
   const showSetting = JSON.parse(getCookie("ken_Setting"));
 
-  if(showSetting.selectedCategory == '(全部)') showSetting.selectedCategory = (標籤資料.length > 0 && 標籤資料[0][fieldCodes.標籤類別]?.value) || '公司名_SI';
+  if (showSetting.selectedCategory == '(全部)') showSetting.selectedCategory = (標籤資料.length > 0 && 標籤資料[0][fieldCodes.標籤類別]?.value) || '公司名_SI';
   showSetting.selectedUser = kintone.getLoginUser().code;
   showSetting.selectedDate = dayjs().subtract(7, 'day').toISOString();
 
@@ -56,7 +57,7 @@ const GanttChart = () => {
   const [currentTask, setCurrentTask] = useState(null);
   const [WIP, setWIP] = useState(false);
   const [WBS, setWBS] = useState(false);
-	const [WBSData, setWBSData] = useState([]);
+  const [WBSData, setWBSData] = useState([]);
   const [isStarred, setIsStarred] = useState(false);
 
   useEffect(() => {
@@ -70,7 +71,7 @@ const GanttChart = () => {
       }
       return gantt.date.date_to_str(formatString)(date);
     };
-  
+
     return {
       month: [
         { unit: 'year', step: 1, format: '%Y年' },
@@ -108,20 +109,20 @@ const GanttChart = () => {
     const filteredData = selectedSetting.selectedCategory === '(全部)'
       ? 標籤資料
       : 標籤資料.filter(record => {
-          return selectedSetting.selectedCategory == '今日事' || 
-          selectedSetting.selectedCategory == '今週事' || 
+        return selectedSetting.selectedCategory == '今日事' ||
+          selectedSetting.selectedCategory == '今週事' ||
           selectedSetting.selectedCategory == '雙週事' ||
-          selectedSetting.selectedCategory == 'WIP' ? 
-          record[fieldCodes.標籤類別].value== '公司名_MA' || 
-          record[fieldCodes.標籤類別].value== '公司名_SI' || 
-          record[fieldCodes.標籤類別].value== '公司名_POC':
+          selectedSetting.selectedCategory == 'WIP' ?
+          record[fieldCodes.標籤類別].value == '公司名_MA' ||
+          record[fieldCodes.標籤類別].value == '公司名_SI' ||
+          record[fieldCodes.標籤類別].value == '公司名_POC' :
           selectedSetting.selectedCategory == 'WBS' ?
-          record[fieldCodes.標籤類別].value== '公司名_MA' || 
-          record[fieldCodes.標籤類別].value== '公司名_SI' || 
-          record[fieldCodes.標籤類別].value== '公司名_POC' || 
-          record[fieldCodes.標籤類別].value== 'WBS(專案管理)' :
-          record[fieldCodes.標籤類別].value === selectedSetting.selectedCategory
-        });
+            record[fieldCodes.標籤類別].value == '公司名_MA' ||
+            record[fieldCodes.標籤類別].value == '公司名_SI' ||
+            record[fieldCodes.標籤類別].value == '公司名_POC' ||
+            record[fieldCodes.標籤類別].value == 'WBS(專案管理)' :
+            record[fieldCodes.標籤類別].value === selectedSetting.selectedCategory
+      });
     return filteredData;
   }, [selectedSetting, 標籤資料]);
 
@@ -133,17 +134,17 @@ const GanttChart = () => {
       filteredData = filteredData.map(record => {
         if (dayjs(record[fieldCodes.發行日].value).isBefore(selectedSetting.selectedDate, 'day')) {
           if (!record[fieldCodes.變更發行日]) record[fieldCodes.變更發行日] = { value: '' };
-          
+
           const 發行日 = dayjs(selectedSetting.selectedDate)
-                        .subtract(1, selectedSetting.selectedView)
-                        .startOf(selectedSetting.selectedView)
-                        .add(selectedSetting.selectedView == 'week' ? 1 : 0, 'day')
-                        .format('YYYY-MM-DD');
+            .subtract(1, selectedSetting.selectedView)
+            .startOf(selectedSetting.selectedView)
+            .add(selectedSetting.selectedView == 'week' ? 1 : 0, 'day')
+            .format('YYYY-MM-DD');
 
           record[fieldCodes.變更發行日].value = 發行日;
-         
+
         }
-        if (dayjs(record[fieldCodes.到期日].value).isBefore(selectedSetting.selectedDate, 'day')){
+        if (dayjs(record[fieldCodes.到期日].value).isBefore(selectedSetting.selectedDate, 'day')) {
           if (!record[fieldCodes.變更到期日]) record[fieldCodes.變更到期日] = { value: '' };
           const 到期日 = dayjs(selectedSetting.selectedDate)
             .subtract(selectedSetting.selectedView == 'day' ? 0 : 1, selectedSetting.selectedView)
@@ -152,12 +153,12 @@ const GanttChart = () => {
             .format('YYYY-MM-DD');
           record[fieldCodes.變更到期日].value = 到期日;
         }
-        
+
         return record;
       });
     }
 
-    if(selectedSetting.selectedToday){
+    if (selectedSetting.selectedToday) {
       filteredData = filteredData.filter(record => {
         const 開始時間 = dayjs(record[fieldCodes.開始時間].value);
         const 提醒時間 = dayjs(record[fieldCodes.提醒時間].value);
@@ -165,25 +166,25 @@ const GanttChart = () => {
       });
     }
 
-    if(selectedSetting.selectedWeek){
+    if (selectedSetting.selectedWeek) {
       filteredData = filteredData.filter(record => {
         const 開始時間 = dayjs(record[fieldCodes.開始時間].value);
         const 提醒時間 = dayjs(record[fieldCodes.提醒時間].value);
-        return 開始時間.isSame(dayjs(new Date()), 'week') || 提醒時間.isSame(dayjs(new Date()),  'week') || record[fieldCodes.標籤].value == '行事曆';
+        return 開始時間.isSame(dayjs(new Date()), 'week') || 提醒時間.isSame(dayjs(new Date()), 'week') || record[fieldCodes.標籤].value == '行事曆';
       });
     }
 
     if (selectedSetting.selectedTwoWeek) {
       filteredData = filteredData.filter(record => {
-          const 開始時間 = dayjs(record[fieldCodes.開始時間].value);
-          const 提醒時間 = dayjs(record[fieldCodes.提醒時間].value);
-          const thisWeek = dayjs(new Date());
-          const nextWeek = thisWeek.add(1, 'week');
-  
-          return (
-              開始時間.isSame(thisWeek, 'week') || 提醒時間.isSame(thisWeek, 'week') ||
-              開始時間.isSame(nextWeek, 'week') || 提醒時間.isSame(nextWeek, 'week') || record[fieldCodes.標籤].value == '行事曆'
-          );
+        const 開始時間 = dayjs(record[fieldCodes.開始時間].value);
+        const 提醒時間 = dayjs(record[fieldCodes.提醒時間].value);
+        const thisWeek = dayjs(new Date());
+        const nextWeek = thisWeek.add(1, 'week');
+
+        return (
+          開始時間.isSame(thisWeek, 'week') || 提醒時間.isSame(thisWeek, 'week') ||
+          開始時間.isSame(nextWeek, 'week') || 提醒時間.isSame(nextWeek, 'week') || record[fieldCodes.標籤].value == '行事曆'
+        );
       });
     }
 
@@ -193,8 +194,8 @@ const GanttChart = () => {
       );
     }
 
-    if (selectedSetting.selectedTag2 !== '(全部)' && selectedSetting.selectedTag2){
-      filteredData = filteredData.filter(record =>{
+    if (selectedSetting.selectedTag2 !== '(全部)' && selectedSetting.selectedTag2) {
+      filteredData = filteredData.filter(record => {
         const 所有標籤 = record[fieldCodes.標籤].value.split(',');
         return 所有標籤.includes(selectedSetting.selectedTag2);
       });
@@ -232,7 +233,7 @@ const GanttChart = () => {
     const recordLinks = [];
     const 標籤ids = {};
     const 問題編號Mapping = {};
-		const 標籤篩選資料 = [];
+    const 標籤篩選資料 = [];
 
     for (const record of filteredCategories) {
       const 標籤 = record[fieldCodes.標籤].value;
@@ -240,27 +241,27 @@ const GanttChart = () => {
 
       if ((selectedSetting.selectedCategory !== '(全部)' && selectedSetting.selectedCategory !== '雙週事' && selectedSetting.selectedCategory !== '今週事' && selectedSetting.selectedCategory !== '今日事' && selectedSetting.selectedCategory !== 'WIP' && selectedSetting.selectedCategory !== 'WBS' && selectedSetting.selectedCategory2 !== '(全部)') && (標籤類別 !== selectedSetting.selectedCategory && 標籤類別 !== selectedSetting.selectedCategory2)) continue;
       if (selectedSetting.selectedTag !== '(全部)' && 標籤 !== selectedSetting.selectedTag) continue;
-			if (selectedSetting.selectedCategory == 'WBS' && 標籤類別 == 'WBS(專案管理)') continue;
+      if (selectedSetting.selectedCategory == 'WBS' && 標籤類別 == 'WBS(專案管理)') continue;
       if (!filterData.some(record => {
         const 所有標籤 = record[fieldCodes.標籤].value.split(',');
-				
-				if(selectedSetting.selectedCategory == 'WBS'){
-					const 篩選標籤 = 標籤資料.filter((record) => 所有標籤.includes(record[fieldCodes.標籤].value) && record[fieldCodes.標籤類別].value == 'WBS(專案管理)');
-					if (篩選標籤.length > 0) {
-						if (所有標籤.includes(標籤)) {
-							if (!標籤篩選資料.some(existing => 
-								existing[fieldCodes.標籤].value === 標籤
-							)) {
-								標籤篩選資料.push({
-									[fieldCodes.標籤]: { value: 標籤 }
-								});
-							}
-							return true;
-						}
-					} else {
-						return false;
-					}
-				}
+
+        if (selectedSetting.selectedCategory == 'WBS') {
+          const 篩選標籤 = 標籤資料.filter((record) => 所有標籤.includes(record[fieldCodes.標籤].value) && record[fieldCodes.標籤類別].value == 'WBS(專案管理)');
+          if (篩選標籤.length > 0) {
+            if (所有標籤.includes(標籤)) {
+              if (!標籤篩選資料.some(existing =>
+                existing[fieldCodes.標籤].value === 標籤
+              )) {
+                標籤篩選資料.push({
+                  [fieldCodes.標籤]: { value: 標籤 }
+                });
+              }
+              return true;
+            }
+          } else {
+            return false;
+          }
+        }
 
         return 所有標籤.includes(標籤);
       })) continue;
@@ -280,7 +281,7 @@ const GanttChart = () => {
     }
 
 
-		if(selectedSetting.selectedTag == '(全部)') setWBSData(標籤篩選資料);
+    if (selectedSetting.selectedTag == '(全部)') setWBSData(標籤篩選資料);
 
     for (const record of filterData) {
       const 發行日 = dayjs(record[fieldCodes.發行日].value).format('YYYY-MM-DD HH:mm');
@@ -291,7 +292,7 @@ const GanttChart = () => {
       const 變更發行日 = record[fieldCodes.變更發行日]?.value
         ? dayjs(record[fieldCodes.變更發行日].value).format('YYYY-MM-DD HH:mm')
         : 發行日;
-    
+
       const 變更到期日 = record[fieldCodes.變更到期日]?.value
         ? dayjs(record[fieldCodes.變更到期日].value).format('YYYY-MM-DD HH:mm')
         : 到期日;
@@ -299,10 +300,10 @@ const GanttChart = () => {
       const tags = record[fieldCodes.標籤].value.split(',');
       const 處理人員 = record[fieldCodes.處理人員].value.map(user => user.name).join(', ');
 
-			if(selectedSetting.selectedCategory == 'WBS'){
-				const 篩選標籤 = 標籤資料.filter((record) => tags.includes(record[fieldCodes.標籤].value) && record[fieldCodes.標籤類別].value == 'WBS(專案管理)');
-				if(篩選標籤.length == 0) continue; 
-			}
+      if (selectedSetting.selectedCategory == 'WBS') {
+        const 篩選標籤 = 標籤資料.filter((record) => tags.includes(record[fieldCodes.標籤].value) && record[fieldCodes.標籤類別].value == 'WBS(專案管理)');
+        if (篩選標籤.length == 0) continue;
+      }
 
       for (const tag of tags) {
         const trimmedTag = tag.trim();
@@ -332,7 +333,7 @@ const GanttChart = () => {
             [fieldCodes.最新作業異動日]: record[fieldCodes.最新作業異動日].value,
             [fieldCodes.最新驗收日]: record[fieldCodes.最新驗收日].value,
             [fieldCodes.結案日]: record[fieldCodes.結案日].value,
-						[fieldCodes.主要執行者]: record[fieldCodes.主要執行者].value,
+            [fieldCodes.主要執行者]: record[fieldCodes.主要執行者].value,
             [fieldCodes.Follower]: record[fieldCodes.Follower].value,
             open: selectedSetting.selectedOpen,
             $id: record["$id"].value,
@@ -349,23 +350,23 @@ const GanttChart = () => {
       const 問題編號 = record[fieldCodes.問題編號].value;
       const tags = record[fieldCodes.標籤].value.split(',');
 
-			if(selectedSetting.selectedCategory == 'WBS'){
-				const 篩選標籤 = 標籤資料.filter((record) => tags.includes(record[fieldCodes.標籤].value) && record[fieldCodes.標籤類別].value == 'WBS(專案管理)');
-				if(篩選標籤.length == 0) continue; 
-			}
+      if (selectedSetting.selectedCategory == 'WBS') {
+        const 篩選標籤 = 標籤資料.filter((record) => tags.includes(record[fieldCodes.標籤].value) && record[fieldCodes.標籤類別].value == 'WBS(專案管理)');
+        if (篩選標籤.length == 0) continue;
+      }
 
       for (const tag of tags) {
         const trimmedTag = tag.trim();
         const taskId = 問題編號Mapping[`${問題編號}-${標籤ids[trimmedTag]}`];
-    
+
         const 關聯問題編號 = record[fieldCodes.關聯問題編號].value;
-      
+
         if (關聯問題編號 && 問題編號Mapping[`${關聯問題編號}-${標籤ids[trimmedTag]}`]) {
           const targetTaskId = 問題編號Mapping[`${關聯問題編號}-${標籤ids[trimmedTag]}`];
 
-          const task = recordData[taskId-1];
+          const task = recordData[taskId - 1];
           task.parent = targetTaskId;
-      
+
           recordLinks.push({
             id: recordLinks.length + 1,
             source: targetTaskId,
@@ -401,7 +402,7 @@ const GanttChart = () => {
     gantt.config.subscales = scales[view].slice(1).map((scale) => ({
       unit: scale.unit,
       step: scale.step,
-      date: scale.format, 
+      date: scale.format,
     }));
 
     // 重新解析任務資料
@@ -433,7 +434,7 @@ const GanttChart = () => {
     if (selectedSetting.selectedDate) {
       const selectedDate = dayjs(selectedSetting.selectedDate);
       let startDate = selectedDate.subtract(1, selectedSetting.selectedView).startOf(selectedSetting.selectedView).add(selectedSetting.selectedView == 'week' ? 1 : 0, 'day').toDate();
-      let endDate= selectedDate.add(selectedSetting.selectedView == 'day' ? 30 : 15, selectedSetting.selectedView).toDate();
+      let endDate = selectedDate.add(selectedSetting.selectedView == 'day' ? 30 : 15, selectedSetting.selectedView).toDate();
       gantt.config.start_date = startDate;
       gantt.config.end_date = endDate;
     } else {
@@ -474,77 +475,77 @@ const GanttChart = () => {
           return '';
       }
     };
-  
+
 
     gantt.templates.task_text = function (start, end, task) {
       function getTopPosition(className) {
-          switch (className) {
-              case 'line-start': return 2;
-              case 'line-update': return 22;
-              case 'line-reminder': return 24;
-              case 'line-acceptance': return 22;
-              case 'line-finish': return 24;
-              default: return 0;
-          }
+        switch (className) {
+          case 'line-start': return 2;
+          case 'line-update': return 22;
+          case 'line-reminder': return 24;
+          case 'line-acceptance': return 22;
+          case 'line-finish': return 24;
+          default: return 0;
+        }
       }
-  
+
       if (!start || !end) return '';
-  
+
       const taskStart = +start;
       const taskEnd = +end;
       const taskDuration = taskEnd - taskStart;
       if (taskDuration <= 0) return '';
-  
+
       const timeFields = [
-          {
-              field: fieldCodes.開始時間,
-              initialField: fieldCodes.開始時間_初始,
-              className: 'line-start',
-              color: '#51cf66',
-              label: '開始時間',
-          },
-          {
-              field: fieldCodes.最新作業異動日,
-              className: 'line-update',
-              color: '#339af0',
-              label: '更新時間',
-          },
-          {
-              field: fieldCodes.提醒時間,
-              className: 'line-reminder',
-              color: '#ff6b6b',
-              label: '提醒時間',
-          },
-          {
-              field: fieldCodes.最新驗收日,
-              className: 'line-acceptance',
-              color: '#9900ff',
-              label: '最新驗收日',
-          },
-          {
-              field: fieldCodes.結案日,
-              className: 'line-finish',
-              color: '#999999',
-              label: '結案日',
-          },
+        {
+          field: fieldCodes.開始時間,
+          initialField: fieldCodes.開始時間_初始,
+          className: 'line-start',
+          color: '#51cf66',
+          label: '開始時間',
+        },
+        {
+          field: fieldCodes.最新作業異動日,
+          className: 'line-update',
+          color: '#339af0',
+          label: '更新時間',
+        },
+        {
+          field: fieldCodes.提醒時間,
+          className: 'line-reminder',
+          color: '#ff6b6b',
+          label: '提醒時間',
+        },
+        {
+          field: fieldCodes.最新驗收日,
+          className: 'line-acceptance',
+          color: '#9900ff',
+          label: '最新驗收日',
+        },
+        {
+          field: fieldCodes.結案日,
+          className: 'line-finish',
+          color: '#999999',
+          label: '結案日',
+        },
       ];
-  
+
       const linesHTML = timeFields.map(({ field, initialField, className, color, label }) => {
-          const timeValue = task[field];
-          if (timeValue && dayjs(timeValue).isValid()) {
-              const timeDate = new Date(timeValue);
-              const duration = timeDate - taskStart;
-              const durationPercent = (duration / taskDuration) * 100;
-              const isOverdue = durationPercent > 100;
-  
-              let initialLineHTML = '';
-              if (className === 'line-start') {
-                  const initialTimeValue = task[initialField];
-                  if (initialTimeValue && dayjs(initialTimeValue).isValid()) {
-                      const initialDate = new Date(initialTimeValue);
-                      const initialDurationPercent = ((initialDate - taskStart) / taskDuration) * 100;
-                      if (initialDurationPercent > 0) {
-                          initialLineHTML = `
+        const timeValue = task[field];
+        if (timeValue && dayjs(timeValue).isValid()) {
+          const timeDate = new Date(timeValue);
+          const duration = timeDate - taskStart;
+          const durationPercent = (duration / taskDuration) * 100;
+          const isOverdue = durationPercent > 100;
+
+          let initialLineHTML = '';
+          if (className === 'line-start') {
+            const initialTimeValue = task[initialField];
+            if (initialTimeValue && dayjs(initialTimeValue).isValid()) {
+              const initialDate = new Date(initialTimeValue);
+              const initialDurationPercent = ((initialDate - taskStart) / taskDuration) * 100;
+              if (initialDurationPercent > 0) {
+                initialLineHTML = `
                               <div class="custom-line ${className} dashed-line"
                                   style="width: ${initialDurationPercent}%;
                                           background-color: #808080;
@@ -560,23 +561,23 @@ const GanttChart = () => {
                                   title="初始時間: ${dayjs(initialDate).format('YYYY/MM/DD HH:mm')}">
                               </div>
                           `;
-                      }
-                  }
               }
-  
-              if (durationPercent >= 0) {
-                  if (className === 'line-reminder') {
-                      return `
+            }
+          }
+
+          if (durationPercent >= 0) {
+            if (className === 'line-reminder') {
+              return `
                           <div class="custom-triangle ${className}"
                               style="left: ${durationPercent}%;
                                       top: ${getTopPosition(className)}px;"
                               title="${label}: ${dayjs(timeDate).format('YYYY/MM/DD HH:mm')}">
                           </div>
                       `;
-                  }
-  
-                  if (className === 'line-update') {
-                      return `
+            }
+
+            if (className === 'line-update') {
+              return `
                           <div class="custom-star ${className}"
                               style="left: ${durationPercent}%;
                                       top: ${getTopPosition(className)}px;
@@ -589,10 +590,10 @@ const GanttChart = () => {
                               ⭐
                           </div>
                       `;
-                  }
-  
-                  if (className === 'line-acceptance') {
-                      return `
+            }
+
+            if (className === 'line-acceptance') {
+              return `
                           <div class="custom-circle ${className}"
                               style="left: ${durationPercent}%;
                                       background-color: ${color};
@@ -600,10 +601,10 @@ const GanttChart = () => {
                               title="${label}: ${dayjs(timeDate).format('YYYY/MM/DD HH:mm')}">
                           </div>
                       `;
-                  }
-  
-                  if (className === 'line-finish') {
-                      return `
+            }
+
+            if (className === 'line-finish') {
+              return `
                           <img class=""
                               src=${finishImage}
                               style="left: ${durationPercent}%;
@@ -616,14 +617,14 @@ const GanttChart = () => {
                               title="${label}: ${dayjs(timeDate).format('YYYY/MM/DD HH:mm')}"
                               alt="${label}">
                       `;
-                  }
-  
-                  if (isOverdue) {
-                      const solidLineWidth = 100;
-                      const overdueDuration = timeDate - taskEnd;
-                      const overduePercent = (overdueDuration / taskDuration) * 100;
-  
-                      return `
+            }
+
+            if (isOverdue) {
+              const solidLineWidth = 100;
+              const overdueDuration = timeDate - taskEnd;
+              const overduePercent = (overdueDuration / taskDuration) * 100;
+
+              return `
                           ${initialLineHTML}
                           <div class="custom-line ${className}"
                               style="width: ${solidLineWidth}%;
@@ -639,8 +640,8 @@ const GanttChart = () => {
                               title="${label}: ${dayjs(timeDate).format('YYYY/MM/DD HH:mm')}">
                           </div>
                       `;
-                  } else {
-                      return `
+            } else {
+              return `
                           ${initialLineHTML}
                           <div class="custom-line ${className}"
                               style="width: ${durationPercent}%;
@@ -649,27 +650,27 @@ const GanttChart = () => {
                               title="${label}: ${dayjs(timeDate).format('YYYY/MM/DD HH:mm')}">
                           </div>
                       `;
-                  }
-              }
+            }
           }
-          return '';
+        }
+        return '';
       }).join('');
-  
+
       let latestUpdateHTML = '';
       if (task.type === gantt.config.types.project) {
-          const children = gantt.getChildren(task.id).map(id => gantt.getTask(id));
-          const updates = children
-              .map(child => child[fieldCodes.最新作業異動日])
-              .filter(v => v && dayjs(v).isValid());
-  
-          if (updates.length > 0) {
-              const latest = updates.sort((a, b) => new Date(b) - new Date(a))[0];
-              const latestDate = new Date(latest);
-              const duration = latestDate - taskStart;
-              const durationPercent = (duration / taskDuration) * 100;
-  
-              if (durationPercent >= 0 && durationPercent <= 100) {
-                  latestUpdateHTML = `
+        const children = gantt.getChildren(task.id).map(id => gantt.getTask(id));
+        const updates = children
+          .map(child => child[fieldCodes.最新作業異動日])
+          .filter(v => v && dayjs(v).isValid());
+
+        if (updates.length > 0) {
+          const latest = updates.sort((a, b) => new Date(b) - new Date(a))[0];
+          const latestDate = new Date(latest);
+          const duration = latestDate - taskStart;
+          const durationPercent = (duration / taskDuration) * 100;
+
+          if (durationPercent >= 0 && durationPercent <= 100) {
+            latestUpdateHTML = `
                       <div class="custom-star line-update"
                           style="left: ${durationPercent}%;
                                   top: ${getTopPosition('line-update')}px;
@@ -682,10 +683,10 @@ const GanttChart = () => {
                           ⭐
                       </div>
                   `;
-              }
           }
+        }
       }
-  
+
       return `
           <div class="custom-task-content">
               ${linesHTML}
@@ -693,13 +694,13 @@ const GanttChart = () => {
               <div class="task-title">${task[fieldCodes.問題標題]}</div>
           </div>
       `;
-  };
-  
+    };
+
 
     // 設置 tooltip 顯示
     gantt.templates.tooltip_text = function (start, end, task) {
       if (task[fieldCodes.作業狀態_完成度] === 'tags') return;
-    
+
       return `
         <b>問題編號: </b> #${task[fieldCodes.問題編號] || ''}<br/>
         <b>問題標題: </b> ${task[fieldCodes.問題標題] || ''}<br/>
@@ -710,28 +711,23 @@ const GanttChart = () => {
         <b>工數合計WFO: </b> ${task[fieldCodes.工數合計_WFO] || ''}<br/>
         <b>工數合計WFH: </b> ${task[fieldCodes.工數合計_WFH] || ''}<br/>
         <b>工數合計: </b> ${task[fieldCodes.工數合計] || ''}<br/>
-        <b>發行時間: </b> ${
-          dayjs(start).isValid()
-            ? dayjs(start).format('YYYY/MM/DD HH:mm')
-            : '未設定'
+        <b>發行時間: </b> ${dayjs(start).isValid()
+          ? dayjs(start).format('YYYY/MM/DD HH:mm')
+          : '未設定'
         }<br/>
-        <b>到期時間: </b> ${
-          dayjs(end).isValid() ? dayjs(end).format('YYYY/MM/DD HH:mm') : '未設定'
+        <b>到期時間: </b> ${dayjs(end).isValid() ? dayjs(end).format('YYYY/MM/DD HH:mm') : '未設定'
         }<br/>
-        <b style="color: #51cf66;">開始時間: </b> ${
-          dayjs(task[fieldCodes.開始時間]).isValid()
-            ? dayjs(task[fieldCodes.開始時間]).format('YYYY/MM/DD HH:mm')
-            : '未設定'
+        <b style="color: #51cf66;">開始時間: </b> ${dayjs(task[fieldCodes.開始時間]).isValid()
+          ? dayjs(task[fieldCodes.開始時間]).format('YYYY/MM/DD HH:mm')
+          : '未設定'
         }<br/>
-        <b style="color: #339af0;">更新時間: </b> ${
-          dayjs(task[fieldCodes.更新時間]).isValid()
-            ? dayjs(task[fieldCodes.更新時間]).format('YYYY/MM/DD HH:mm')
-            : '未設定'
+        <b style="color: #339af0;">更新時間: </b> ${dayjs(task[fieldCodes.更新時間]).isValid()
+          ? dayjs(task[fieldCodes.更新時間]).format('YYYY/MM/DD HH:mm')
+          : '未設定'
         }<br/>
-        <b style="color: #ff6b6b;">作業規劃/提醒時間: </b> ${
-          dayjs(task[fieldCodes.提醒時間]).isValid()
-            ? dayjs(task[fieldCodes.提醒時間]).format('YYYY/MM/DD HH:mm')
-            : '未設定'
+        <b style="color: #ff6b6b;">作業規劃/提醒時間: </b> ${dayjs(task[fieldCodes.提醒時間]).isValid()
+          ? dayjs(task[fieldCodes.提醒時間]).format('YYYY/MM/DD HH:mm')
+          : '未設定'
         }<br/>
       `;
     };
@@ -743,148 +739,148 @@ const GanttChart = () => {
     gantt.config.grid_width = 600;
 
     // 調整問題標題的列寬度和顯示方式
-		gantt.config.columns = [
-			{
-					name: '問題標題',
-					label: '問題標題',
-					width: '*',
-					tree: true,
-					template: function (task) {
-							function getAncestors(taskId) {
-									let ancestors = [];
-									let currentId = taskId;
-									while (gantt.isTaskExists(currentId)) {
-											let currentTask = gantt.getTask(currentId);
-											ancestors.unshift(currentTask);
-											currentId = currentTask.parent;
-											if (!currentId || currentId === gantt.config.root_id) {
-													break;
-											}
-									}
-									return ancestors;
-							}
-	
-							function getColorClass(status) {
-									switch (status) {
-											case 'tags':
-													return 'status-tags';
-											case 'A-發行':
-													return 'status-A-發行';
-											case 'B-進行中':
-													return 'status-B-進行中';
-											case 'C-驗收( V&V )':
-													return 'status-C-驗收';
-											case 'F-結案':
-													return 'status-F-結案';
-											case 'P-暫緩':
-													return 'status-P-暫緩';
-											case 'R-返工':
-													return 'status-R-返工';
-											default:
-													return 'status-default';
-									}
-							}
-	
-							const ancestors = getAncestors(task.id);
-							const colorDivs = ancestors
-									.map((ancestorTask) => {
-											const colorClass = getColorClass(ancestorTask[fieldCodes.作業狀態_完成度]);
-											return `<div class='status-color ${colorClass}'></div>`;
-									})
-									.join('');
-	
-							const taskStatusColorClass = getColorClass(task[fieldCodes.作業狀態_完成度]);
-									
-							const statusCounts = gantt
-							.getChildren(task.id)
-							.map((childId) => gantt.getTask(childId))
-							.reduce((acc, childTask) => {
-									const status = childTask[fieldCodes.作業狀態_完成度];
-									acc[status] = (acc[status] || 0) + 1;
-									return acc;
-							}, {});
-					
-							const childStatusText = Object.entries(statusCounts)
-							.map(
-									([status, count]) =>
-											`<span class='${getColorClass(status)}' style="color: white; padding: 2px 6px; border-radius: 10px; font-size: 12px; margin-left: 8px;">${count}</span>`
-							)
-							.join('');
+    gantt.config.columns = [
+      {
+        name: '問題標題',
+        label: '問題標題',
+        width: '*',
+        tree: true,
+        template: function (task) {
+          function getAncestors(taskId) {
+            let ancestors = [];
+            let currentId = taskId;
+            while (gantt.isTaskExists(currentId)) {
+              let currentTask = gantt.getTask(currentId);
+              ancestors.unshift(currentTask);
+              currentId = currentTask.parent;
+              if (!currentId || currentId === gantt.config.root_id) {
+                break;
+              }
+            }
+            return ancestors;
+          }
 
-              const 標籤 = task?.[fieldCodes.標籤] || '';
+          function getColorClass(status) {
+            switch (status) {
+              case 'tags':
+                return 'status-tags';
+              case 'A-發行':
+                return 'status-A-發行';
+              case 'B-進行中':
+                return 'status-B-進行中';
+              case 'C-驗收( V&V )':
+                return 'status-C-驗收';
+              case 'F-結案':
+                return 'status-F-結案';
+              case 'P-暫緩':
+                return 'status-P-暫緩';
+              case 'R-返工':
+                return 'status-R-返工';
+              default:
+                return 'status-default';
+            }
+          }
 
-              const match = 標籤.match(/\b(RANK\w*|RK\w*)\b/i);
-              
-              const rank = match ? `<span class='${taskStatusColorClass}'>${match[0]}</span>` : '';
-	
-							const userText = task?.[fieldCodes.主要執行者]?.[0]?.name
-									? `<span class='${taskStatusColorClass}'>${task?.[fieldCodes.主要執行者]?.[0]?.name}</span>`
-									: '';
-	
-							return `${colorDivs}${userText} ${rank}${task[fieldCodes.問題標題]}${childStatusText}`;
-					},
-			},
-	  ];
+          const ancestors = getAncestors(task.id);
+          const colorDivs = ancestors
+            .map((ancestorTask) => {
+              const colorClass = getColorClass(ancestorTask[fieldCodes.作業狀態_完成度]);
+              return `<div class='status-color ${colorClass}'></div>`;
+            })
+            .join('');
+
+          const taskStatusColorClass = getColorClass(task[fieldCodes.作業狀態_完成度]);
+
+          const statusCounts = gantt
+            .getChildren(task.id)
+            .map((childId) => gantt.getTask(childId))
+            .reduce((acc, childTask) => {
+              const status = childTask[fieldCodes.作業狀態_完成度];
+              acc[status] = (acc[status] || 0) + 1;
+              return acc;
+            }, {});
+
+          const childStatusText = Object.entries(statusCounts)
+            .map(
+              ([status, count]) =>
+                `<span class='${getColorClass(status)}' style="color: white; padding: 2px 6px; border-radius: 10px; font-size: 12px; margin-left: 8px;">${count}</span>`
+            )
+            .join('');
+
+          const 標籤 = task?.[fieldCodes.標籤] || '';
+
+          const match = 標籤.match(/\b(RANK\w*|RK\w*)\b/i);
+
+          const rank = match ? `<span class='${taskStatusColorClass}'>${match[0]}</span>` : '';
+
+          const userText = task?.[fieldCodes.主要執行者]?.[0]?.name
+            ? `<span class='${taskStatusColorClass}'>${task?.[fieldCodes.主要執行者]?.[0]?.name}</span>`
+            : '';
+
+          return `${colorDivs}${userText} ${rank}${task[fieldCodes.問題標題]}${childStatusText}`;
+        },
+      },
+    ];
 
     // 隱藏文件圖標，保留資料夾圖標
     gantt.templates.grid_file = function (task) {
       return "";
     };
 
-    gantt.templates.grid_folder = function(task) {
+    gantt.templates.grid_folder = function (task) {
       let level = 0;
       while (task.parent && task.parent !== gantt.config.root_id) {
         task = gantt.getTask(task.parent);
         level++;
       }
-      if(level >= 1) return ""
+      if (level >= 1) return ""
       return `<div class='gantt_tree_icon gantt_folder_${selectedSetting.selectedOpen ? "open" : "closed"}'></div>`;
     }
 
     gantt.templates.scale_cell_class = function (date) {
       return "gantt_scale_cell";
     };
-    
+
     // 標記任務區域上早於今天的日期為灰色
     gantt.templates.timeline_cell_class = function (task, date) {
       const today = dayjs().startOf('day').toDate(); // 今天的開始時間
       const todayPos = gantt.posFromDate(today); // 今天的起始位置
       const datePos = gantt.posFromDate(date);
-      
+
       const nextDatePos = gantt.posFromDate(gantt.date.add(date, 1, gantt.getState().scale_unit));
-      
+
       // 獲取甘特圖範圍的第一天
       const startDate = gantt.getState().min_date;
       const startDatePos = gantt.posFromDate(startDate);
 
-			if (selectedSetting.selectedWeek) {
-				const thisWeekStart = gantt.posFromDate(dayjs().startOf('week').toDate());
-				const thisWeekEnd = gantt.posFromDate(dayjs().endOf('week').toDate());
-				if (datePos >= thisWeekStart && datePos <= thisWeekEnd) {
-						return "gantt_timeline_today";
-				}
-			}
+      if (selectedSetting.selectedWeek) {
+        const thisWeekStart = gantt.posFromDate(dayjs().startOf('week').toDate());
+        const thisWeekEnd = gantt.posFromDate(dayjs().endOf('week').toDate());
+        if (datePos >= thisWeekStart && datePos <= thisWeekEnd) {
+          return "gantt_timeline_today";
+        }
+      }
 
       if (selectedSetting.selectedTwoWeek) {
         const thisWeekStart = gantt.posFromDate(dayjs().startOf('week').toDate());
         const nextWeekEnd = gantt.posFromDate(dayjs().add(1, 'week').endOf('week').toDate());
-    
+
         if (datePos >= thisWeekStart && datePos <= nextWeekEnd) {
-            return "gantt_timeline_today";
+          return "gantt_timeline_today";
         }
       }
 
-			if(selectedSetting.selectedToday){
-				const nextDatePos = gantt.posFromDate(gantt.date.add(date, 1, gantt.getState().scale_unit)); // 下一天的位置
-				if (datePos === todayPos) return "gantt_timeline_today";
-			}
-    
+      if (selectedSetting.selectedToday) {
+        const nextDatePos = gantt.posFromDate(gantt.date.add(date, 1, gantt.getState().scale_unit)); // 下一天的位置
+        if (datePos === todayPos) return "gantt_timeline_today";
+      }
+
       if (datePos === startDatePos && selectedSetting.selectedDate) return "gantt_timeline_first_cell";
-      if (nextDatePos <= todayPos ) {
+      if (nextDatePos <= todayPos) {
         return "gantt_timeline_past";
       } else if (datePos < todayPos && todayPos < nextDatePos) {
         const fillPercentage = ((todayPos - datePos) / (nextDatePos - datePos)) * 100;
-    
+
         // 動態創建 class 並設置漸變背景色
         const dynamicStyle = document.createElement('style');
         dynamicStyle.innerHTML = `
@@ -895,7 +891,7 @@ const GanttChart = () => {
         document.head.appendChild(dynamicStyle);
         return `gantt_timeline_partially_filled_${datePos}`;
       }
-    
+
       return "gantt_timeline_cell";
     };
 
@@ -913,18 +909,17 @@ const GanttChart = () => {
     // 創建今天標記線的元素
     const todayLine = document.createElement('div');
     todayLine.className = 'today-line';
-  
+
     const taskArea = gantt.$task_data;
     if (taskArea) taskArea.appendChild(todayLine);
-    
-  
+
     const updateTodayLinePosition = () => {
       const today = dayjs().startOf('day').toDate();
       const todayPos = gantt.posFromDate(today);
 
       const scrollState = gantt.getScrollState();
       const scrollTop = scrollState.y;
-  
+
       if (todayPos === null || isNaN(todayPos)) {
         todayLine.style.display = 'none';
       } else {
@@ -939,19 +934,19 @@ const GanttChart = () => {
     // 設置點擊事件
     gantt.attachEvent("onTaskClick", function (id, e) {
       const clickedElement = e.target;
-    
+
       if (gantt.getTaskRowNode(id) && gantt.getTaskRowNode(id).contains(clickedElement)) return true;
-      
+
       const tooltipElement = document.querySelector('.gantt_tooltip');
       if (tooltipElement) {
         tooltipElement.remove();
       }
-    
+
       const task = gantt.getTask(id);
       if (task[fieldCodes.作業狀態_完成度] === 'tags') return true;
       setCurrentTask(task);
       setIsModalShow(true);
-    
+
       return true;
     });
 
@@ -966,6 +961,42 @@ const GanttChart = () => {
     gantt.clearAll();
     gantt.parse(tasks);
   }, [selectedSetting, tasks]);
+
+
+  const downloadGanttImage = async () => {
+    const container = ganttContainer.current;
+    if (!container) return;
+
+    // 1️⃣ 暫存原本大小
+    const originalHeight = container.style.height;
+
+    gantt.render();
+
+
+    console.log(filterData);
+    container.style.height = (filterData.length * (selectedSetting.selectedOpen ? 27 : 1)) + 50 + "px";
+
+    // 4️⃣ 讓畫面渲染完成
+    await new Promise(r => setTimeout(r, 300));
+
+    // 5️⃣ 使用 html2canvas 截整張圖
+    html2canvas(container, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: "#ffffff",
+    }).then(canvas => {
+      const link = document.createElement("a");
+      link.download = "gantt-full.png";
+      link.href = canvas.toDataURL();
+      link.click();
+
+      // 6️⃣ 截完圖後還原設定
+      container.style.height = originalHeight;
+      gantt.config.smart_rendering = true;
+      gantt.render();
+    });
+  };
 
   return (
     <ConfigProvider locale={zhTW}>
@@ -1016,7 +1047,7 @@ const GanttChart = () => {
               </Option>
               {(WBS ? WBSData : filteredCategories).map((tag) => (
                 <Option
-                  key={ tag[fieldCodes.標籤].value}
+                  key={tag[fieldCodes.標籤].value}
                   value={tag[fieldCodes.標籤].value}
                 >
                   {tag[fieldCodes.標籤].value}
@@ -1048,7 +1079,7 @@ const GanttChart = () => {
                 </Option>
               ))}
             </Select>
-			<Checkbox onChange={(e) => setIsMainUser(e.target.checked)}></Checkbox>
+            <Checkbox onChange={(e) => setIsMainUser(e.target.checked)}></Checkbox>
           </Col>
 
           <Col>
@@ -1102,131 +1133,137 @@ const GanttChart = () => {
             </Radio.Group>
           </Col>
         </Row>
-		<Row>
-			<Col>
-				<div className="show-all">
-					<Button type="primary" onClick={() =>  setSelectedSetting((prev) => ({ ...prev, selectedOpen: !prev.selectedOpen }))} className={`show-all-${selectedSetting.selectedOpen}`}>全展開</Button>
-				</div>
-			</Col>
-			<Col>
-				<Button
-					type="primary"
-					className={`gantt-today-${selectedSetting.selectedToday}`}
-					style={{marginLeft: '10px'}}
-					onClick={() => {
-            setWIP(false);
-            setWBS(false);
-            setIsState(['A-發行', 'B-進行中', 'C-驗收( V&V )', 'F-結案', 'P-暫緩', 'R-返工'])
-						setSelectedSetting((prev) => ({
-						...prev,
-						selectedCategory: selectedSetting.selectedToday ? '(全部)' : '今日事',
-						selectedView: 'day',
-						selectedToday: !selectedSetting.selectedToday,
-            selectedTwoWeek: false,
-						selectedWeek: false,
-						}));
-					}}
-				>
-				今日事
-				</Button>
-			</Col>
-			<Col>
-				<Button
-					type="primary"
-					className={`gantt-today-${selectedSetting.selectedWeek}`}
-					style={{marginLeft: '20px'}}
-					onClick={() => {
-            setWIP(false);
-            setWBS(false);
-            setIsState(['A-發行', 'B-進行中', 'C-驗收( V&V )', 'F-結案', 'P-暫緩', 'R-返工'])
-            setSelectedSetting((prev) => ({
-              ...prev,
-              selectedCategory: selectedSetting.selectedWeek ? '(全部)' : '今週事',
-              selectedView: 'day',
-              selectedWeek: !selectedSetting.selectedWeek,
-              selectedTwoWeek: false,
-              selectedToday: false
-            }));
-					}}
-				>
-					今週事
-				</Button>
-			</Col>
-      <Col>
-				<Button
-					type="primary"
-					className={`gantt-today-${selectedSetting.selectedTwoWeek}`}
-					style={{marginLeft: '20px'}}
-					onClick={() => {
-            setWIP(false);
-            setWBS(false);
-            setIsState(['A-發行', 'B-進行中', 'C-驗收( V&V )', 'F-結案', 'P-暫緩', 'R-返工'])
-            setSelectedSetting((prev) => ({
-              ...prev,
-              selectedCategory: selectedSetting.selectedTwoWeek ? '(全部)' : '雙週事',
-              selectedView: 'day',
-              selectedTwoWeek: !selectedSetting.selectedTwoWeek,
-              selectedWeek: false,
-              selectedToday: false
-            }));
-					}}
-				>
-					雙週事
-				</Button>
-			</Col>
-      <Col>
-        <Button
-					type="primary"
-					className={`gantt-today-${WIP}`}
-					style={{marginLeft: '20px'}}
-					onClick={() => {
-						setWIP(!WIP);
-						setWBS(false);
-						setIsState(['A-發行', 'B-進行中', 'C-驗收( V&V )', 'R-返工'])
-						setSelectedSetting((prev) => ({
-							...prev,
-              selectedWeek: false,
-              selectedToday: false,
-              selectedTwoWeek: false,
-							selectedCategory: WIP ? '公司名_SI' : 'WIP',
-						}));
-					}}
-				>
-					WIP
-				</Button>
-				<Button
-						type="primary"
-						className={`gantt-today-${WBS}`}
-						style={{marginLeft: '20px'}}
-						onClick={() => {
-							setWBS(!WBS);
-							setWIP(false);
-							setSelectedSetting((prev) => ({
-								...prev,
-								selectedTag: '(全部)',
-                selectedWeek: false,
-                selectedToday: false,
-                selectedTwoWeek: false,
-								selectedCategory: WBS ? '公司名_SI' : 'WBS',
-							}));
-						}}
-					>
-						WBS
-				</Button>
-        <Button
-            type="primary"
-						className={`gantt-today-${isStarred}`}
-						style={{marginLeft: '20px'}}
-						onClick={() => {
-							setIsStarred(!isStarred);
-						}}
-          >
-            我的最愛
-        </Button>
-			</Col>
-			</Row>
+        <Row>
+          <Col>
+            <div className="show-all">
+              <Button type="primary" onClick={() => setSelectedSetting((prev) => ({ ...prev, selectedOpen: !prev.selectedOpen }))} className={`show-all-${selectedSetting.selectedOpen}`}>全展開</Button>
+            </div>
+          </Col>
+          <Col>
+            <Button
+              type="primary"
+              className={`gantt-today-${selectedSetting.selectedToday}`}
+              style={{ marginLeft: '10px' }}
+              onClick={() => {
+                setWIP(false);
+                setWBS(false);
+                setIsState(['A-發行', 'B-進行中', 'C-驗收( V&V )', 'F-結案', 'P-暫緩', 'R-返工'])
+                setSelectedSetting((prev) => ({
+                  ...prev,
+                  selectedCategory: selectedSetting.selectedToday ? '(全部)' : '今日事',
+                  selectedView: 'day',
+                  selectedToday: !selectedSetting.selectedToday,
+                  selectedTwoWeek: false,
+                  selectedWeek: false,
+                }));
+              }}
+            >
+              今日事
+            </Button>
+          </Col>
+          <Col>
+            <Button
+              type="primary"
+              className={`gantt-today-${selectedSetting.selectedWeek}`}
+              style={{ marginLeft: '20px' }}
+              onClick={() => {
+                setWIP(false);
+                setWBS(false);
+                setIsState(['A-發行', 'B-進行中', 'C-驗收( V&V )', 'F-結案', 'P-暫緩', 'R-返工'])
+                setSelectedSetting((prev) => ({
+                  ...prev,
+                  selectedCategory: selectedSetting.selectedWeek ? '(全部)' : '今週事',
+                  selectedView: 'day',
+                  selectedWeek: !selectedSetting.selectedWeek,
+                  selectedTwoWeek: false,
+                  selectedToday: false
+                }));
+              }}
+            >
+              今週事
+            </Button>
+          </Col>
+          <Col>
+            <Button
+              type="primary"
+              className={`gantt-today-${selectedSetting.selectedTwoWeek}`}
+              style={{ marginLeft: '20px' }}
+              onClick={() => {
+                setWIP(false);
+                setWBS(false);
+                setIsState(['A-發行', 'B-進行中', 'C-驗收( V&V )', 'F-結案', 'P-暫緩', 'R-返工'])
+                setSelectedSetting((prev) => ({
+                  ...prev,
+                  selectedCategory: selectedSetting.selectedTwoWeek ? '(全部)' : '雙週事',
+                  selectedView: 'day',
+                  selectedTwoWeek: !selectedSetting.selectedTwoWeek,
+                  selectedWeek: false,
+                  selectedToday: false
+                }));
+              }}
+            >
+              雙週事
+            </Button>
+          </Col>
+          <Col>
+            <Button
+              type="primary"
+              className={`gantt-today-${WIP}`}
+              style={{ marginLeft: '20px' }}
+              onClick={() => {
+                setWIP(!WIP);
+                setWBS(false);
+                setIsState(['A-發行', 'B-進行中', 'C-驗收( V&V )', 'R-返工'])
+                setSelectedSetting((prev) => ({
+                  ...prev,
+                  selectedWeek: false,
+                  selectedToday: false,
+                  selectedTwoWeek: false,
+                  selectedCategory: WIP ? '公司名_SI' : 'WIP',
+                }));
+              }}
+            >
+              WIP
+            </Button>
+            <Button
+              type="primary"
+              className={`gantt-today-${WBS}`}
+              style={{ marginLeft: '20px' }}
+              onClick={() => {
+                setWBS(!WBS);
+                setWIP(false);
+                setSelectedSetting((prev) => ({
+                  ...prev,
+                  selectedTag: '(全部)',
+                  selectedWeek: false,
+                  selectedToday: false,
+                  selectedTwoWeek: false,
+                  selectedCategory: WBS ? '公司名_SI' : 'WBS',
+                }));
+              }}
+            >
+              WBS
+            </Button>
+            <Button
+              type="primary"
+              className={`gantt-today-${isStarred}`}
+              style={{ marginLeft: '20px' }}
+              onClick={() => {
+                setIsStarred(!isStarred);
+              }}
+            >
+              我的最愛
+            </Button>
+          </Col>
+        </Row>
       </div>
-      <div ref={ganttContainer} style={{ height: '600px', width: '99%', marginLeft: '10px', marginBottom: '20px'}} />
+      <Button
+        onClick={() => downloadGanttImage()}
+        type="primary"
+      >
+        下載甘特圖圖片
+      </Button>
+      <div ref={ganttContainer} style={{ height: '600px', width: '99%', marginLeft: '10px', marginBottom: '20px' }} />
       <Modal
         open={isModalShow}
         onCancel={() => setIsModalShow(false)}
@@ -1235,7 +1272,7 @@ const GanttChart = () => {
         className="timeline-tag-modal"
         width={1600}
       >
-         {currentTask ? (
+        {currentTask ? (
           <div>
             <div className="modal-fixed-header">
               <div className="modal-title">
